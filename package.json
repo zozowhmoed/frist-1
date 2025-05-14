@@ -1,0 +1,41 @@
+{
+  "name": "my_new_project",
+  "version": "1.0.0",
+  "private": true,
+  "homepage": "https://zozowhmoed.github.io/frist-1",
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^6.7.2",
+    "firebase": "^10.11.1",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-icons": "^5.5.0",
+    "react-router-dom": "^6.22.1",
+    "react-toastify": "^11.0.5",
+    "sass": "^1.88.0",
+    "web-vitals": "^1.1.2"
+  },
+  "devDependencies": {
+    "gh-pages": "^6.3.0",
+    "react-scripts": "4.0.3"
+  },
+  "scripts": {
+    "start": "set NODE_OPTIONS=--openssl-legacy-provider && react-scripts start",
+    "build": "set NODE_OPTIONS=--openssl-legacy-provider && react-scripts build",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
