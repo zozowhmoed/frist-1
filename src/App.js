@@ -31,13 +31,15 @@ function Timer({ user, onBack, groupId }) {
   const [loadingMembers, setLoadingMembers] = useState(true);
   const [bannedMembers, setBannedMembers] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [showProfileModal, setShowProfileModal] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [language, setLanguage] = useState('ar');
   const [notification, setNotification] = useState(null);
   const [studySessions, setStudySessions] = useState([]);
+  const [activeTab, setActiveTab] = useState('timer');
+  const [sideMenuOpen, setSideMenuOpen] = useState(false);
+  const [inventory, setInventory] = useState([]);
+  const [activeEffects, setActiveEffects] = useState([]);
+  const [hoveredItem, setHoveredItem] = useState(null);
 
   // Calculate user level with exponential growth
   const calculateLevel = (points) => {
@@ -66,20 +68,107 @@ function Timer({ user, onBack, groupId }) {
 
   const { currentLevel, progress, pointsToNextLevel } = calculateLevel(points);
 
+  // نظام الشعارات
+  const getBadge = (level) => {
+    const badges = {
+      1: { name: "البذرة", icon: "🌱", color: "var(--secondary-color)", bgColor: "rgba(16, 185, 129, 0.1)" },
+      5: { name: "المتدرب", icon: "📖", color: "var(--primary-color)", bgColor: "rgba(79, 70, 229, 0.1)" },
+      10: { name: "المجتهد", icon: "🎓", color: "var(--warning-color)", bgColor: "rgba(245, 158, 11, 0.1)" },
+      20: { name: "الخبير", icon: "🔍", color: "var(--accent-color)", bgColor: "rgba(239, 68, 68, 0.1)" },
+      30: { name: "العبقري", icon: "🧠", color: "var(--primary-dark)", bgColor: "rgba(67, 56, 202, 0.1)" },
+      50: { name: "الأسطورة", icon: "🏆", color: "var(--warning-dark)", bgColor: "rgba(217, 119, 6, 0.1)" },
+      100: { name: "رائد المعرفة", icon: "🚀", color: "var(--secondary-dark)", bgColor: "rgba(5, 150, 105, 0.1)" }
+    };
+    
+    const eligibleLevels = Object.keys(badges)
+      .map(Number)
+      .filter(lvl => level >= lvl)
+      .sort((a, b) => b - a);
+    
+    return badges[eligibleLevels[0]] || badges[1];
+  };
+
+  const currentBadge = getBadge(currentLevel);
+
+  // نظام المتجر
+  const shopItems = [
+    { 
+      id: "boost", 
+      name: "دفعة النجاح", 
+      price: 400, 
+      icon: "⚡", 
+      effect: "double_points", 
+      color: "var(--warning-color)",
+      bgColor: "rgba(245, 158, 11, 0.1)",
+      hoverEffect: "glow"
+    },
+    { 
+      id: "focus", 
+      name: "معزز التركيز", 
+      price: 300, 
+      icon: "🧠", 
+      effect: "speed_boost", 
+      color: "var(--primary-color)",
+      bgColor: "rgba(79, 70, 229, 0.1)",
+      hoverEffect: "pulse"
+    },
+    { 
+      id: "crown", 
+      name: "التاج الذهبي", 
+      price: 600, 
+      icon: "👑", 
+      effect: "golden_crown", 
+      color: "var(--warning-dark)",
+      bgColor: "rgba(217, 119, 6, 0.1)",
+      hoverEffect: "float"
+    },
+    { 
+      id: "shield", 
+      name: "حافظة النقاط", 
+      price: 350, 
+      icon: "🛡️", 
+      effect: "points_shield", 
+      color: "var(--secondary-color)",
+      bgColor: "rgba(16, 185, 129, 0.1)",
+      hoverEffect: "shake"
+    }
+  ];
+
+  const purchaseItem = async (item) => {
+    if (points >= item.price) {
+      try {
+        await runTransaction(db, async (transaction) => {
+          const userDoc = await transaction.get(doc(db, "users", user.uid));
+          transaction.update(doc(db, "users", user.uid), {
+            points: userDoc.data().points - item.price,
+            inventory: arrayUnion(item.id)
+          });
+        });
+        showNotification(`🎉 تم شراء ${item.name}!`);
+        setInventory([...inventory, item.id]);
+      } catch (error) {
+        console.error("Error purchasing item:", error);
+        showNotification("⚠️ حدث خطأ أثناء الشراء");
+      }
+    } else {
+      showNotification("❌ نقاطك غير كافية!");
+    }
+  };
+
   // Toggle dark/light theme
   const toggleDarkMode = () => {
     const newMode = !darkMode;
     setDarkMode(newMode);
     document.documentElement.setAttribute('data-theme', newMode ? 'dark' : 'light');
     localStorage.setItem('darkMode', JSON.stringify(newMode));
-    showNotification(newMode ? 'تم تفعيل الوضع المظلم' : 'تم تفعيل الوضع الفاتح');
+    showNotification(newMode ? '🌙 تم تفعيل الوضع المظلم' : '☀️ تم تفعيل الوضع الفاتح');
   };
 
   // Change language
   const changeLanguage = (lang) => {
     setLanguage(lang);
     localStorage.setItem('language', lang);
-    showNotification(lang === 'ar' ? 'تم تغيير اللغة إلى العربية' : 'Language changed to English');
+    showNotification(lang === 'ar' ? '🇸🇦 تم تغيير اللغة إلى العربية' : '🇬🇧 Language changed to English');
   };
 
   // Show notification
@@ -236,10 +325,10 @@ function Timer({ user, onBack, groupId }) {
             userPoints: updatedUserPoints
           });
         });
-        showNotification("تم حذف العضو بنجاح");
+        showNotification("✅ تم حذف العضو بنجاح");
       } catch (error) {
         console.error("Error removing member:", error);
-        showNotification("حدث خطأ أثناء حذف العضو");
+        showNotification("❌ حدث خطأ أثناء حذف العضو");
       }
     }
   };
@@ -277,10 +366,10 @@ function Timer({ user, onBack, groupId }) {
           transaction.update(doc(db, "studyGroups", groupId), updates);
         });
         
-        showNotification(`تم ${bannedMembers.includes(memberId) ? 'إلغاء حظر' : 'حظر'} العضو بنجاح`);
+        showNotification(`✅ تم ${bannedMembers.includes(memberId) ? 'إلغاء حظر' : 'حظر'} العضو بنجاح`);
       } catch (error) {
         console.error("Error updating banned members:", error);
-        showNotification("حدث خطأ أثناء تحديث قائمة الحظر");
+        showNotification("❌ حدث خطأ أثناء تحديث قائمة الحظر");
       }
     }
   };
@@ -289,115 +378,389 @@ function Timer({ user, onBack, groupId }) {
   const resetTimer = () => {
     if (time > 0) {
       addStudySession(time, Math.floor(time / 30));
+      showNotification(`📊 تم حفظ جلسة دراسة مدتها ${formatTime(time)}`);
     }
     setIsRunning(false);
     setTime(0);
   };
 
+  // Apply active effects
+  const applyEffect = (effect) => {
+    switch(effect) {
+      case 'glow':
+        return { boxShadow: '0 0 15px rgba(245, 158, 11, 0.7)' };
+      case 'pulse':
+        return { animation: 'pulse 1.5s infinite' };
+      case 'float':
+        return { transform: 'translateY(-5px)', transition: 'all 0.3s ease' };
+      case 'shake':
+        return { animation: 'shake 0.5s infinite' };
+      default:
+        return {};
+    }
+  };
+
   return (
-    <div className="timer-container">
-      {/* Header Section */}
-      <div className="timer-header">
-        <button onClick={onBack} className="back-button">
-          ← العودة للمجموعات
+    <div className="app-container">
+      {/* Top Navigation */}
+      <div className="top-tabs">
+        <button 
+          className="menu-toggle" 
+          onClick={() => setSideMenuOpen(!sideMenuOpen)}
+          aria-label="قائمة"
+        >
+          ☰
         </button>
         
-        <div className="user-info" onClick={() => setShowProfileMenu(!showProfileMenu)}>
+        <div className="main-tabs">
+          <button 
+            className={`tab-button ${activeTab === 'timer' ? 'active' : ''}`}
+            onClick={() => setActiveTab('timer')}
+            onMouseEnter={(e) => e.currentTarget.classList.add('hover-effect')}
+            onMouseLeave={(e) => e.currentTarget.classList.remove('hover-effect')}
+          >
+            <span className="tab-icon">⏱️</span>
+            <span className="tab-label">المؤقت</span>
+          </button>
+          <button 
+            className={`tab-button ${activeTab === 'profile' ? 'active' : ''}`}
+            onClick={() => setActiveTab('profile')}
+            onMouseEnter={(e) => e.currentTarget.classList.add('hover-effect')}
+            onMouseLeave={(e) => e.currentTarget.classList.remove('hover-effect')}
+          >
+            <span className="tab-icon">👤</span>
+            <span className="tab-label">الملف الشخصي</span>
+          </button>
+          <button 
+            className={`tab-button ${activeTab === 'shop' ? 'active' : ''}`}
+            onClick={() => setActiveTab('shop')}
+            onMouseEnter={(e) => e.currentTarget.classList.add('hover-effect')}
+            onMouseLeave={(e) => e.currentTarget.classList.remove('hover-effect')}
+          >
+            <span className="tab-icon">🛒</span>
+            <span className="tab-label">المتجر</span>
+          </button>
+        </div>
+        
+        <div className="user-info">
           <div className="avatar-container">
-            <img src={user.photoURL} alt="صورة المستخدم" className="user-avatar" />
+            <img 
+              src={user.photoURL} 
+              alt="صورة المستخدم" 
+              className="user-avatar"
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            />
             {onlineUsers.includes(user.uid) && <div className="online-status"></div>}
           </div>
-          <span className="user-display-name">{user.displayName}</span>
-          {bannedMembers.includes(user.uid) && (
-            <span className="banned-warning">(حسابك محظور)</span>
-          )}
         </div>
       </div>
 
-      {/* Profile Menu */}
-      {showProfileMenu && (
-        <div className="profile-menu">
-          <div className="menu-item" onClick={() => {
-            setShowProfileModal(true);
-            setShowProfileMenu(false);
-          }}>
-            الملف الشخصي
-          </div>
-          <div className="menu-item" onClick={() => {
-            setShowSettingsModal(true);
-            setShowProfileMenu(false);
-          }}>
-            الإعدادات
+      {/* Side Menu */}
+      <div className={`side-menu ${sideMenuOpen ? 'open' : ''}`}>
+        <button 
+          className="close-menu" 
+          onClick={() => setSideMenuOpen(false)}
+          aria-label="إغلاق القائمة"
+        >
+          ✕
+        </button>
+        
+        <div className="menu-section">
+          <h3>مجموعاتك</h3>
+          <button 
+            onClick={onBack} 
+            className="back-button"
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-bg)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--secondary-bg)'}
+          >
+            ← العودة للمجموعات
+          </button>
+        </div>
+        
+        <div className="menu-section">
+          <h3>إنجازاتك</h3>
+          <div 
+            className="badge-display" 
+            style={{ 
+              backgroundColor: currentBadge.bgColor,
+              borderLeft: `4px solid ${currentBadge.color}`
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            <span 
+              className="badge-icon"
+              style={{ color: currentBadge.color }}
+            >
+              {currentBadge.icon}
+            </span>
+            <div className="badge-info">
+              <span className="badge-name" style={{ color: currentBadge.color }}>
+                {currentBadge.name}
+              </span>
+              <span className="badge-level" style={{ color: currentBadge.color }}>
+                المستوى {currentLevel}
+              </span>
+            </div>
           </div>
         </div>
-      )}
+        
+        <div className="menu-section">
+          <h3>الإعدادات</h3>
+          <div className="settings-option">
+            <span>الوضع المظلم:</span>
+            <label className="switch">
+              <input 
+                type="checkbox" 
+                checked={darkMode} 
+                onChange={toggleDarkMode}
+              />
+              <span className="slider round"></span>
+            </label>
+          </div>
+          
+          <div className="settings-option">
+            <span>اللغة:</span>
+            <select 
+              value={language} 
+              onChange={(e) => changeLanguage(e.target.value)}
+              className="language-select"
+              onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary-color)'}
+              onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+            >
+              <option value="ar">العربية</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+        </div>
+      </div>
 
-      {/* Main Timer Display */}
-      <div className="timer-display">
-        <div className="time-display">
-          <h2>وقت المذاكرة</h2>
-          <div className="time">{formatTime(time)}</div>
-        </div>
-        
-        <div className="stats-display">
-          <div className="stat-box">
-            <span className="stat-label">النقاط</span>
-            <span className="stat-value">{points}</span>
-          </div>
-          
-          <div className="stat-box">
-            <span className="stat-label">المستوى</span>
-            <span className="stat-value">{currentLevel}</span>
-          </div>
-        </div>
-        
-        {/* Progress Bar */}
-        <div className="progress-container">
-          <div className="progress-label">
-            <span>التقدم للمستوى {currentLevel + 1}</span>
-            <span>{Math.round(progress)}%</span>
-          </div>
-          <div className="progress-bar">
-            <div 
-              className="progress-fill"
-              style={{ width: `${progress}%` }}
-            ></div>
-          </div>
-          <div className="progress-text">
-            {pointsToNextLevel} نقطة متبقية للوصول للمستوى التالي
-          </div>
-        </div>
-        
-        {/* Timer Controls */}
-        <div className="timer-controls">
-          <button 
-            onClick={() => setIsRunning(!isRunning)}
-            className={`control-button ${isRunning ? 'pause-button' : 'start-button'}`}
-            disabled={bannedMembers.includes(user.uid)}
+      {/* Main Content */}
+      <div className="main-content">
+        {activeTab === 'timer' && (
+          <div 
+            className="timer-container"
+            onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--box-shadow-lg)'}
+            onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'var(--box-shadow)'}
           >
-            {isRunning ? 'إيقاف' : 'بدء'}
-          </button>
-          
-          <button 
-            onClick={resetTimer}
-            className="control-button reset-button"
+            <div className="time-display">
+              <h2>وقت المذاكرة</h2>
+              <div className="time">{formatTime(time)}</div>
+            </div>
+            
+            <div className="stats-display">
+              <div 
+                className="stat-box"
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-3px)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                <span className="stat-label">النقاط</span>
+                <span className="stat-value">{points}</span>
+              </div>
+              
+              <div 
+                className="stat-box"
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-3px)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                <span className="stat-label">المستوى</span>
+                <span className="stat-value">{currentLevel}</span>
+              </div>
+            </div>
+            
+            <div className="progress-container">
+              <div className="progress-label">
+                <span>التقدم للمستوى {currentLevel + 1}</span>
+                <span>{Math.round(progress)}%</span>
+              </div>
+              <div className="progress-bar">
+                <div 
+                  className="progress-fill"
+                  style={{ width: `${progress}%` }}
+                ></div>
+              </div>
+              <div className="progress-text">
+                {pointsToNextLevel} نقطة متبقية للوصول للمستوى التالي
+              </div>
+            </div>
+            
+            <div className="timer-controls">
+              <button 
+                onClick={() => setIsRunning(!isRunning)}
+                className={`control-button ${isRunning ? 'pause-button' : 'start-button'}`}
+                disabled={bannedMembers.includes(user.uid)}
+                onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.transform = 'scale(1.05)')}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              >
+                {isRunning ? ' إيقاف' : ' بدء'}
+              </button>
+              
+              <button 
+                onClick={resetTimer}
+                className="control-button reset-button"
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-bg)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--tertiary-bg)'}
+              >
+                 إعادة تعيين
+              </button>
+              
+              <button
+                onClick={() => setShowMembers(!showMembers)}
+                className="control-button members-button"
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateX(-3px)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateX(0)'}
+              >
+                {showMembers ? ' إخفاء الأعضاء' : ' عرض الأعضاء'}
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {activeTab === 'profile' && (
+          <div 
+            className="profile-container"
+            onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--box-shadow-lg)'}
+            onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'var(--box-shadow)'}
           >
-            إعادة تعيين
-          </button>
-          
-          <button
-            onClick={() => setShowMembers(!showMembers)}
-            className="control-button members-button"
+            <div className="profile-header">
+              <img 
+                src={user.photoURL} 
+                alt="صورة الملف الشخصي" 
+                className="profile-avatar"
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'rotate(5deg)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'rotate(0)'}
+              />
+              <h2>{user.displayName}</h2>
+              <p className="user-level">المستوى {currentLevel}</p>
+            </div>
+            
+            <div className="profile-stats">
+              <div 
+                className="stat-row"
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-bg)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <span className="stat-label">إجمالي النقاط:</span>
+                <span className="stat-value">{points}</span>
+              </div>
+              
+              <div 
+                className="stat-row"
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-bg)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <span className="stat-label">إجمالي وقت الدراسة:</span>
+                <span className="stat-value">{Math.floor(time / 3600)} ساعة</span>
+              </div>
+              
+              <div 
+                className="stat-row"
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-bg)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <span className="stat-label">النقاط للوصول للمستوى التالي:</span>
+                <span className="stat-value">{pointsToNextLevel}</span>
+              </div>
+            </div>
+            
+            {studySessions.length > 0 && (
+              <div className="sessions-history">
+                <h3>آخر جلسات الدراسة</h3>
+                <div className="sessions-list">
+                  {studySessions.map((session, index) => (
+                    <div 
+                      key={index} 
+                      className="session-item"
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-bg)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <span className="session-date">
+                        {new Date(session.date).toLocaleDateString()}
+                      </span>
+                      <span className="session-duration">
+                        {formatTime(session.duration)}
+                      </span>
+                      <span className="session-points">
+                        +{session.pointsEarned} نقطة
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {activeTab === 'shop' && (
+          <div 
+            className="shop-container"
+            onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--box-shadow-lg)'}
+            onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'var(--box-shadow)'}
           >
-            {showMembers ? 'إخفاء الأعضاء' : 'عرض الأعضاء'}
-          </button>
-        </div>
+            <h2>متجر النقاط</h2>
+            <div className="balance-display">
+              <span>رصيدك الحالي:</span>
+              <span className="points-balance">{points} نقطة</span>
+            </div>
+            <div className="shop-items">
+              {shopItems.map(item => (
+                <div 
+                  key={item.id} 
+                  className={`shop-item ${hoveredItem === item.id ? 'hovered' : ''}`}
+                  style={{ 
+                    borderColor: item.color,
+                    backgroundColor: item.bgColor,
+                    ...(hoveredItem === item.id ? applyEffect(item.hoverEffect) : {})
+                  }}
+                  onMouseEnter={() => setHoveredItem(item.id)}
+                  onMouseLeave={() => setHoveredItem(null)}
+                >
+                  <div 
+                    className="item-icon" 
+                    style={{ color: item.color }}
+                  >
+                    {item.icon}
+                  </div>
+                  <h3>{item.name}</h3>
+                  <p className="item-price" style={{ color: item.color }}>
+                    {item.price} نقطة
+                  </p>
+                  <button 
+                    onClick={() => purchaseItem(item)}
+                    disabled={points < item.price}
+                    className={points < item.price ? 'disabled' : ''}
+                    style={{ backgroundColor: item.color }}
+                    onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.transform = 'scale(1.05)')}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  >
+                    {points < item.price ? 'نقاط غير كافية' : 'شراء'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Members Sidebar */}
       {showMembers && (
-        <div className="members-sidebar">
-          <h3>ترتيب المجموعة</h3>
+        <div 
+          className="members-sidebar"
+          onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--box-shadow-lg)'}
+          onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'var(--box-shadow)'}
+        >
+          <div className="sidebar-header">
+            <h3>ترتيب المجموعة</h3>
+            <button 
+              className="close-sidebar" 
+              onClick={() => setShowMembers(false)}
+              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent-color)'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+            >
+              ✕
+            </button>
+          </div>
           
           {loadingMembers ? (
             <div className="loading-container">
@@ -410,11 +773,22 @@ function Timer({ user, onBack, groupId }) {
                 {members
                   .filter(member => !bannedMembers.includes(member.uid))
                   .map((member, index) => (
-                    <div key={member.uid} className={`member-item ${member.uid === user.uid ? 'current-user' : ''}`}>
+                    <div 
+                      key={member.uid} 
+                      className={`member-item ${member.uid === user.uid ? 'current-user' : ''}`}
+                      onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                      onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                    >
                       <span className="member-rank">{index + 1}</span>
                       
                       <div className="avatar-container">
-                        <img src={member.photoURL} alt={member.name} className="member-avatar" />
+                        <img 
+                          src={member.photoURL} 
+                          alt={member.name} 
+                          className="member-avatar"
+                          onMouseEnter={(e) => e.currentTarget.style.transform = 'rotate(5deg)'}
+                          onMouseLeave={(e) => e.currentTarget.style.transform = 'rotate(0)'}
+                        />
                         {onlineUsers.includes(member.uid) && <div className="online-status"></div>}
                       </div>
                       
@@ -429,6 +803,8 @@ function Timer({ user, onBack, groupId }) {
                             onClick={() => toggleBanMember(member.uid)}
                             className="ban-button"
                             title={bannedMembers.includes(member.uid) ? "إلغاء الحظر" : "حظر العضو"}
+                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.2)'}
+                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                           >
                             {bannedMembers.includes(member.uid) ? "🚫" : "⛔"}
                           </button>
@@ -436,6 +812,8 @@ function Timer({ user, onBack, groupId }) {
                             onClick={() => removeMember(member.uid)}
                             className="remove-button"
                             title="حذف العضو"
+                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.2)'}
+                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                           >
                             ✕
                           </button>
@@ -452,9 +830,18 @@ function Timer({ user, onBack, groupId }) {
                   {members
                     .filter(member => bannedMembers.includes(member.uid))
                     .map((member) => (
-                      <div key={member.uid} className="member-item banned-member">
+                      <div 
+                        key={member.uid} 
+                        className="member-item banned-member"
+                        onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                        onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
+                      >
                         <div className="avatar-container">
-                          <img src={member.photoURL} alt={member.name} className="member-avatar" />
+                          <img 
+                            src={member.photoURL} 
+                            alt={member.name} 
+                            className="member-avatar"
+                          />
                         </div>
                         
                         <div className="member-info">
@@ -466,6 +853,8 @@ function Timer({ user, onBack, groupId }) {
                           <button 
                             onClick={() => toggleBanMember(member.uid)}
                             className="unban-button"
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--secondary-dark)'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--secondary-color)'}
                           >
                             إلغاء الحظر
                           </button>
@@ -477,108 +866,6 @@ function Timer({ user, onBack, groupId }) {
               )}
             </>
           )}
-        </div>
-      )}
-
-      {/* Profile Modal */}
-      {showProfileModal && (
-        <div className="modal-overlay" onClick={() => setShowProfileModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="close-button" onClick={() => setShowProfileModal(false)}>
-              &times;
-            </button>
-            
-            <div className="profile-header">
-              <img src={user.photoURL} alt="صورة الملف الشخصي" className="profile-avatar" />
-              <h2>{user.displayName}</h2>
-              <p className="user-level">المستوى {currentLevel}</p>
-            </div>
-            
-            <div className="profile-stats">
-              <div className="stat-row">
-                <span className="stat-label">إجمالي النقاط:</span>
-                <span className="stat-value">{points}</span>
-              </div>
-              
-              <div className="stat-row">
-                <span className="stat-label">إجمالي وقت الدراسة:</span>
-                <span className="stat-value">{Math.floor(time / 3600)} ساعة</span>
-              </div>
-              
-              <div className="stat-row">
-                <span className="stat-label">النقاط للوصول للمستوى التالي:</span>
-                <span className="stat-value">{pointsToNextLevel}</span>
-              </div>
-            </div>
-            
-            {studySessions.length > 0 && (
-              <div className="sessions-history">
-                <h3>آخر جلسات الدراسة</h3>
-                <div className="sessions-list">
-                  {studySessions.map((session, index) => (
-                    <div key={index} className="session-item">
-                      <span className="session-date">
-                        {new Date(session.date).toLocaleDateString()}
-                      </span>
-                      <span className="session-duration">
-                        {formatTime(session.duration)}
-                      </span>
-                      <span className="session-points">
-                        +{session.pointsEarned} نقطة
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Settings Modal */}
-      {showSettingsModal && (
-        <div className="modal-overlay" onClick={() => setShowSettingsModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="close-button" onClick={() => setShowSettingsModal(false)}>
-              &times;
-            </button>
-            
-            <h2>الإعدادات</h2>
-            
-            <div className="settings-option">
-              <span>الوضع المظلم:</span>
-              <label className="switch">
-                <input 
-                  type="checkbox" 
-                  checked={darkMode} 
-                  onChange={toggleDarkMode}
-                />
-                <span className="slider round"></span>
-              </label>
-            </div>
-            
-            <div className="settings-option">
-              <span>اللغة:</span>
-              <select 
-                value={language} 
-                onChange={(e) => changeLanguage(e.target.value)}
-                className="language-select"
-              >
-                <option value="ar">العربية</option>
-                <option value="en">English</option>
-              </select>
-            </div>
-            
-            <button 
-              className="logout-button"
-              onClick={() => {
-                signOut(auth);
-                setShowSettingsModal(false);
-              }}
-            >
-              تسجيل الخروج
-            </button>
-          </div>
         </div>
       )}
 
@@ -603,6 +890,7 @@ function App() {
   const [darkMode, setDarkMode] = useState(false);
   const [language, setLanguage] = useState('ar');
   const [notification, setNotification] = useState(null);
+  const [hoveredGroup, setHoveredGroup] = useState(null);
 
   // Show notification
   const showNotification = (message) => {
@@ -616,7 +904,7 @@ function App() {
     setDarkMode(newMode);
     document.documentElement.setAttribute('data-theme', newMode ? 'dark' : 'light');
     localStorage.setItem('darkMode', JSON.stringify(newMode));
-    showNotification(newMode ? 'تم تفعيل الوضع المظلم' : 'تم تفعيل الوضع الفاتح');
+    showNotification(newMode ? '🌙 تم تفعيل الوضع المظلم' : '☀️ تم تفعيل الوضع الفاتح');
   };
 
   // Load theme preference
@@ -690,7 +978,7 @@ function App() {
       }
     } catch (error) {
       console.error("Error fetching user groups:", error);
-      showNotification("حدث خطأ أثناء جلب المجموعات");
+      showNotification("❌ حدث خطأ أثناء جلب المجموعات");
     } finally {
       setLoadingGroups(false);
     }
@@ -701,10 +989,10 @@ function App() {
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
-      showNotification(`مرحباً ${result.user.displayName}!`);
+      showNotification(`🎉 مرحباً ${result.user.displayName}!`);
     } catch (error) {
       console.error("Error signing in:", error);
-      showNotification("حدث خطأ أثناء تسجيل الدخول");
+      showNotification("❌ حدث خطأ أثناء تسجيل الدخول");
     }
   };
 
@@ -712,7 +1000,7 @@ function App() {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      showNotification("تم تسجيل الخروج بنجاح");
+      showNotification("✅ تم تسجيل الخروج بنجاح");
     } catch (error) {
       console.error("Error signing out:", error);
     }
@@ -721,7 +1009,7 @@ function App() {
   // Create new group
   const addStudyGroup = async () => {
     if (!groupName.trim()) {
-      showNotification("الرجاء إدخال اسم المجموعة");
+      showNotification("⚠️ الرجاء إدخال اسم المجموعة");
       return;
     }
     
@@ -737,17 +1025,17 @@ function App() {
       
       await addDoc(collection(db, "studyGroups"), newGroup);
       setGroupName('');
-      showNotification(`تم إنشاء مجموعة "${groupName.trim()}" بنجاح`);
+      showNotification(`🎉 تم إنشاء مجموعة "${groupName.trim()}" بنجاح`);
       await fetchUserGroups(user.uid);
     } catch (error) {
       console.error("Error adding group:", error);
-      showNotification("حدث خطأ أثناء إنشاء المجموعة");
+      showNotification("❌ حدث خطأ أثناء إنشاء المجموعة");
     }
   };
 
   // Delete group
   const deleteGroup = async (groupId) => {
-    if (window.confirm("هل أنت متأكد من حذف هذه المجموعة؟ سيتم حذف جميع بياناتها نهائياً")) {
+    if (window.confirm("⚠️ هل أنت متأكد من حذف هذه المجموعة؟ سيتم حذف جميع بياناتها نهائياً")) {
       try {
         const groupItem = document.getElementById(`group-${groupId}`);
         if (groupItem) {
@@ -760,11 +1048,11 @@ function App() {
         }
         
         await deleteDoc(doc(db, "studyGroups", groupId));
-        showNotification("تم حذف المجموعة بنجاح");
+        showNotification("✅ تم حذف المجموعة بنجاح");
         await fetchUserGroups(user.uid);
       } catch (error) {
         console.error("Error deleting group:", error);
-        showNotification("حدث خطأ أثناء حذف المجموعة");
+        showNotification("❌ حدث خطأ أثناء حذف المجموعة");
       }
     }
   };
@@ -772,7 +1060,7 @@ function App() {
   // Join group by code
   const joinGroupByCode = async () => {
     if (!joinCode.trim()) {
-      showNotification("الرجاء إدخال كود المجموعة");
+      showNotification("⚠️ الرجاء إدخال كود المجموعة");
       return;
     }
     
@@ -794,7 +1082,7 @@ function App() {
       
       if (groupToJoin) {
         if (groupToJoin.bannedMembers?.includes(user.uid)) {
-          showNotification(`أنت محظور من هذه المجموعة (${groupToJoin.name})`);
+          showNotification(`🚫 أنت محظور من هذه المجموعة (${groupToJoin.name})`);
           return;
         }
         
@@ -813,14 +1101,14 @@ function App() {
         setSelectedGroup(groupToJoin.id);
         setShowJoinModal(false);
         setJoinCode('');
-        showNotification(`تم الانضمام إلى مجموعة "${groupToJoin.name}"`);
+        showNotification(`🎉 تم الانضمام إلى مجموعة "${groupToJoin.name}"`);
         await fetchUserGroups(user.uid);
       } else {
-        showNotification("لا توجد مجموعة بهذا الكود");
+        showNotification("❌ لا توجد مجموعة بهذا الكود");
       }
     } catch (error) {
       console.error("Error joining group:", error);
-      showNotification("حدث خطأ أثناء الانضمام للمجموعة");
+      showNotification("❌ حدث خطأ أثناء الانضمام للمجموعة");
     }
   };
 
@@ -852,6 +1140,8 @@ function App() {
         onClick={toggleDarkMode} 
         className="theme-toggle"
         aria-label={darkMode ? 'تفعيل الوضع الفاتح' : 'تفعيل الوضع الغامق'}
+        onMouseEnter={(e) => e.currentTarget.style.transform = 'rotate(30deg)'}
+        onMouseLeave={(e) => e.currentTarget.style.transform = 'rotate(0)'}
       >
         {darkMode ? '☀️' : '🌙'}
       </button>
@@ -862,17 +1152,33 @@ function App() {
             <div className="welcome-screen">
               <h1>مجموعات الدراسة التعاونية</h1>
               <p>انضم إلى مجتمع المذاكرة مع الأصدقاء وحقق أهدافك التعليمية</p>
-              <button className="login-button" onClick={handleLogin}>
+              <button 
+                className="login-button" 
+                onClick={handleLogin}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              >
                 <span>تسجيل الدخول باستخدام Google</span>
               </button>
             </div>
           ) : (
             <div className="user-welcome">
               <div className="user-info">
-                <img src={user.photoURL} alt="صورة المستخدم" className="user-avatar" />
+                <img 
+                  src={user.photoURL} 
+                  alt="صورة المستخدم" 
+                  className="user-avatar"
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                />
                 <div className="user-details">
                   <h2>مرحباً {user.displayName}!</h2>
-                  <button className="logout-button" onClick={handleLogout}>
+                  <button 
+                    className="logout-button" 
+                    onClick={handleLogout}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  >
                     تسجيل الخروج
                   </button>
                 </div>
@@ -883,7 +1189,11 @@ function App() {
 
         {user && (
           <div className="group-management">
-            <div className="group-creation">
+            <div 
+              className="group-creation"
+              onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--box-shadow-lg)'}
+              onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'var(--box-shadow)'}
+            >
               <h2>إنشاء مجموعة جديدة</h2>
               <div className="input-group">
                 <input
@@ -892,18 +1202,31 @@ function App() {
                   onChange={(e) => setGroupName(e.target.value)}
                   placeholder="أدخل اسم المجموعة"
                   onKeyPress={(e) => e.key === 'Enter' && addStudyGroup()}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary-color)'}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
                 />
-                <button className="create-button" onClick={addStudyGroup}>
+                <button 
+                  className="create-button" 
+                  onClick={addStudyGroup}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                >
                   إنشاء
                 </button>
               </div>
             </div>
             
-            <div className="join-group">
+            <div 
+              className="join-group"
+              onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--box-shadow-lg)'}
+              onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'var(--box-shadow)'}
+            >
               <h2>الانضمام إلى مجموعة</h2>
               <button 
                 className="join-button"
                 onClick={() => setShowJoinModal(true)}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateX(-5px)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateX(0)'}
               >
                 الانضمام بمجموعة موجودة
               </button>
@@ -921,12 +1244,18 @@ function App() {
                 <p>جاري تحميل المجموعات...</p>
               </div>
             ) : groups.length === 0 ? (
-              <div className="empty-state">
-                <img src="/empty-groups.svg" alt="لا توجد مجموعات" className="empty-image" />
+              <div 
+                className="empty-state"
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              >
+                <div className="empty-icon">📚</div>
                 <p>لا توجد مجموعات متاحة حالياً</p>
                 <button 
                   className="create-button"
                   onClick={() => document.querySelector('.group-creation input').focus()}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                 >
                   إنشاء مجموعة جديدة
                 </button>
@@ -934,7 +1263,17 @@ function App() {
             ) : (
               <div className="groups-grid">
                 {groups.map((group) => (
-                  <div key={group.id} id={`group-${group.id}`} className="group-card">
+                  <div 
+                    key={group.id} 
+                    id={`group-${group.id}`} 
+                    className={`group-card ${hoveredGroup === group.id ? 'hovered' : ''}`}
+                    onMouseEnter={() => setHoveredGroup(group.id)}
+                    onMouseLeave={() => setHoveredGroup(null)}
+                    style={{
+                      transform: hoveredGroup === group.id ? 'perspective(1000px) rotateX(5deg)' : 'perspective(1000px) rotateX(0)',
+                      boxShadow: hoveredGroup === group.id ? '0 20px 30px rgba(0, 0, 0, 0.2)' : 'var(--box-shadow)'
+                    }}
+                  >
                     <div className="group-content">
                       <h3 className="group-name">{group.name}</h3>
                       <p className="group-meta">
@@ -948,6 +1287,8 @@ function App() {
                       <button 
                         onClick={() => handleJoinGroup(group.id)} 
                         className="join-button"
+                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                       >
                         دخول المجموعة
                       </button>
@@ -956,6 +1297,8 @@ function App() {
                         <button 
                           onClick={() => deleteGroup(group.id)} 
                           className="delete-button"
+                          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                         >
                           حذف المجموعة
                         </button>
@@ -970,8 +1313,18 @@ function App() {
         
         {showJoinModal && (
           <div className="modal-overlay" onClick={() => setShowJoinModal(false)}>
-            <div className="modal-content" onClick={e => e.stopPropagation()}>
-              <button className="close-button" onClick={() => setShowJoinModal(false)}>
+            <div 
+              className="modal-content" 
+              onClick={e => e.stopPropagation()}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <button 
+                className="close-button" 
+                onClick={() => setShowJoinModal(false)}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'rotate(90deg)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'rotate(0)'}
+              >
                 &times;
               </button>
               
@@ -985,15 +1338,24 @@ function App() {
                 placeholder="أدخل كود المجموعة"
                 maxLength={6}
                 className="join-input"
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary-color)'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
               />
               
               <div className="modal-actions">
-                <button onClick={joinGroupByCode} className="confirm-button">
+                <button 
+                  onClick={joinGroupByCode} 
+                  className="confirm-button"
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                >
                   تأكيد الانضمام
                 </button>
                 <button 
                   onClick={() => setShowJoinModal(false)} 
                   className="cancel-button"
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-bg)'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--tertiary-bg)'}
                 >
                   إلغاء
                 </button>
