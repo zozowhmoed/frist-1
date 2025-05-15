@@ -18,7 +18,7 @@ if ('caches' in window) {
 }
 
 // 3. تصيير التطبيق مع إعدادات المسار الصحيحة
-ReactDOM.render(
+ReactDOM.render(دا
   <React.StrictMode>
     <App />
   </React.StrictMode>,
