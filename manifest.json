@@ -1,30 +1,37 @@
 {
   "short_name": "TimeCapsule",
-  "name": "TimeCapsule - Focus Timer App",
+  "name": "TimeCapsule - Focus Timer",
   "icons": [
     {
-      "src": "timecapsule-icon.ico",
+      "src": "./timecapsule-icon.ico",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/x-icon",
       "purpose": "any maskable"
     },
     {
-      "src": "timecapsule-icon-192.png",
+      "src": "./timecapsule-icon-192.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any maskable"
     },
     {
-      "src": "timecapsule-icon-512.png",
+      "src": "./timecapsule-icon-512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"
     }
   ],
-  "start_url": ".",
+  "start_url": "/frist-1/",
+  "scope": "/frist-1/",
   "display": "standalone",
   "theme_color": "#4f46e5",
   "background_color": "#ffffff",
-  "description": "Smart study timer with Pomodoro technique", // أضيف جديد
-  "orientation": "portrait-primary" // أضيف جديد
+  "description": "Smart study timer with Pomodoro technique",
+  "orientation": "portrait-primary",
+  "related_applications": [
+    {
+      "platform": "web",
+      "url": "https://zozowhmoed.github.io/frist-1"
+    }
+  ]
 }
