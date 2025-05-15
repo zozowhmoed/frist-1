@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "homepage": "https://zozowhmoed.github.io/time-capsule",
-  "description": "TimeCapsule - تطبيق مؤقت الدراسة الذكي باستخدام تقنية بومودورو", // أضيف جديد
-  "keywords": ["timer", "focus", "productivity", "pomodoro", "study"], // أضيف جديد
-  "author": "Your Name <your.email@example.com>", // أضيف جديد
-  "license": "MIT", // أضيف جديد
+  "description": "TimeCapsule - تطبيق مؤقت الدراسة الذكي باستخدام تقنية بومودورو",
+  "keywords": ["timer", "focus", "productivity", "pomodoro", "study"],
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.7.2",
     "firebase": "^10.11.1",
@@ -29,7 +29,7 @@
     "deploy": "gh-pages -d build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "lint": "eslint src" // أضيف جديد
+    "lint": "eslint src"
   },
   "browserslist": {
     "production": [
@@ -43,11 +43,11 @@
       "last 1 safari version"
     ]
   },
-  "repository": { // أضيف جديد
+  "repository": {
     "type": "git",
     "url": "git+https://github.com/zozowhmoed/time-capsule.git"
   },
-  "bugs": { // أضيف جديد
+  "bugs": {
     "url": "https://github.com/zozowhmoed/time-capsule/issues"
   }
 }
