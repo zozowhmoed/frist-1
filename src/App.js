@@ -40,6 +40,7 @@ function Timer({ user, onBack, groupId }) {
   const [inventory, setInventory] = useState([]);
   const [activeEffects, setActiveEffects] = useState([]);
   const [hoveredItem, setHoveredItem] = useState(null);
+  const [hoveredAvatar, setHoveredAvatar] = useState(null);
 
   // Calculate user level with exponential growth
   const calculateLevel = (points) => {
@@ -700,6 +701,8 @@ function Timer({ user, onBack, groupId }) {
                   <div 
                     key={member.uid} 
                     className={`member-item ${member.uid === user.uid ? 'current-user' : ''}`}
+                    onMouseEnter={() => setHoveredAvatar(member.uid)}
+                    onMouseLeave={() => setHoveredAvatar(null)}
                   >
                     <span className="member-rank">{index + 1}</span>
                     
@@ -707,9 +710,10 @@ function Timer({ user, onBack, groupId }) {
                       <img 
                         src={member.photoURL} 
                         alt={member.name} 
-                        className="member-avatar"
+                        className={`member-avatar ${hoveredAvatar === member.uid ? 'avatar-hover' : ''}`}
                       />
                       {onlineUsers.includes(member.uid) && <div className="online-status"></div>}
+                      {hoveredAvatar === member.uid && <div className="avatar-tooltip">{member.name}</div>}
                     </div>
                     
                     <div className="member-info">

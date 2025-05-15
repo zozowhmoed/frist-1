@@ -1,3 +1,4 @@
+/* CSS Reset وتحديد المتغيرات */
 :root {
   --primary-bg: #ffffff;
   --secondary-bg: #f5f5f5;
@@ -59,8 +60,7 @@
   --modal-overlay: rgba(0, 0, 0, 0.7);
 }
 
-/* Modern CSS Reset */
-*, *::before, *::after {
+* {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -77,16 +77,13 @@ body {
   line-height: 1.6;
   transition: var(--transition);
   min-height: 100vh;
-  text-rendering: optimizeSpeed;
 }
 
-/* Layout Improvements */
+/* التخطيط العام */
 .App {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  padding: 0;
-  overflow-x: hidden;
 }
 
 .app-container {
@@ -101,7 +98,7 @@ body {
   position: relative;
 }
 
-/* Top Navigation - Enhanced */
+/* شريط التنقل العلوي */
 .top-tabs {
   grid-area: top-tabs;
   display: flex;
@@ -114,7 +111,6 @@ body {
   top: 0;
   z-index: 100;
   backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
 }
 
 .menu-toggle {
@@ -160,7 +156,7 @@ body {
   background-color: var(--tertiary-bg);
 }
 
-/* Side Menu - Modernized */
+/* القائمة الجانبية */
 .side-menu {
   position: fixed;
   top: 0;
@@ -210,6 +206,11 @@ body {
 
 .badge-icon {
   font-size: 2rem;
+  transition: transform 0.7s ease;
+}
+
+.badge-icon:hover {
+  transform: rotate(15deg) scale(1.2);
 }
 
 .badge-info {
@@ -276,7 +277,49 @@ input:checked + .slider:before {
   border-radius: 50%;
 }
 
-/* Main Content - Optimized */
+.language-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.language-button {
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--border-color);
+  background-color: var(--secondary-bg);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.language-button.active {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-dark);
+}
+
+.back-button {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 0.8rem 1.5rem;
+  border-radius: var(--border-radius-sm);
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: var(--transition);
+  width: 100%;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.back-button:hover {
+  background-color: var(--primary-dark);
+  transform: translateY(-2px);
+}
+
+/* المحتوى الرئيسي */
 .main-content {
   grid-area: main-content;
   padding: 2rem;
@@ -443,7 +486,7 @@ input:checked + .slider:before {
   transform: translateX(-3px);
 }
 
-/* Profile Section - Enhanced */
+/* صفحة الملف الشخصي */
 .profile-header {
   text-align: center;
   margin-bottom: 2rem;
@@ -457,10 +500,12 @@ input:checked + .slider:before {
   border: 3px solid var(--primary-color);
   margin: 0 auto 1rem;
   transition: var(--transition);
+  cursor: pointer;
 }
 
 .profile-avatar:hover {
-  transform: rotate(5deg);
+  transform: translateY(-5px) scale(1.05);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
 .user-level {
@@ -511,7 +556,7 @@ input:checked + .slider:before {
   background-color: var(--hover-bg);
 }
 
-/* Shop Section - Modernized */
+/* صفحة المتجر */
 .shop-container h2 {
   text-align: center;
   margin-bottom: 1.5rem;
@@ -556,6 +601,11 @@ input:checked + .slider:before {
 .item-icon {
   font-size: 2.5rem;
   margin-bottom: 1rem;
+  transition: transform 0.7s ease;
+}
+
+.item-icon:hover {
+  transform: rotate(15deg) scale(1.2);
 }
 
 .item-description {
@@ -591,7 +641,7 @@ input:checked + .slider:before {
   transform: scale(1.05);
 }
 
-/* Members Sidebar - Enhanced */
+/* شريط الأعضاء الجانبي */
 .members-sidebar {
   grid-area: members-sidebar;
   background-color: var(--secondary-bg);
@@ -609,16 +659,10 @@ input:checked + .slider:before {
   overflow-y: auto;
 }
 
-/* تعديل الـ sidebar */
-.members-sidebar {
-  /* ... */
-  right: -400px;
-  transition: transform 0.3s ease-in-out;
-}
-
 .members-sidebar.show {
   transform: translateX(-400px);
 }
+
 .sidebar-header {
   display: flex;
   justify-content: space-between;
@@ -672,19 +716,48 @@ input:checked + .slider:before {
 
 .avatar-container {
   position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .member-avatar {
-  width: 40px;
-  height: 40px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--border-color);
   transition: var(--transition);
+  cursor: pointer;
 }
 
-.member-avatar:hover {
-  transform: rotate(5deg);
+.member-avatar:hover,
+.avatar-hover {
+  transform: scale(1.2) rotate(5deg);
+  box-shadow: 0 0 20px rgba(79, 70, 229, 0.5);
+  border-color: var(--primary-color);
+  z-index: 10;
+}
+
+.avatar-tooltip {
+  position: absolute;
+  top: -30px;
+  background: var(--primary-color);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.member-item:hover .avatar-tooltip {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .online-status {
@@ -771,6 +844,17 @@ input:checked + .slider:before {
   opacity: 1;
 }
 
+.banned-member .member-avatar {
+  filter: grayscale(100%);
+  opacity: 0.6;
+}
+
+.banned-member .member-avatar:hover {
+  transform: scale(1.1);
+  filter: grayscale(80%);
+  opacity: 0.8;
+}
+
 .unban-button {
   background-color: var(--secondary-color);
   color: white;
@@ -791,7 +875,7 @@ input:checked + .slider:before {
   font-size: 0.8rem;
 }
 
-/* Login & Welcome Screen */
+/* شاشة تسجيل الدخول */
 .login-container {
   display: flex;
   flex-direction: column;
@@ -862,11 +946,12 @@ input:checked + .slider:before {
   border: 3px solid var(--primary-color);
   box-shadow: var(--box-shadow);
   transition: var(--transition);
+  cursor: pointer;
 }
 
 .user-avatar:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 20px rgba(79, 70, 229, 0.3);
+  transform: perspective(500px) rotateY(10deg) rotateX(5deg) scale(1.1);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
 }
 
 .user-details h2 {
@@ -888,7 +973,7 @@ input:checked + .slider:before {
   background-color: var(--accent-dark);
 }
 
-/* Group Management */
+/* إدارة المجموعات */
 .group-management {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -963,7 +1048,7 @@ input:checked + .slider:before {
   transform: translateX(-5px);
 }
 
-/* Groups List */
+/* قائمة المجموعات */
 .study-groups {
   margin-top: 2rem;
 }
@@ -1072,7 +1157,7 @@ input:checked + .slider:before {
   transform: scale(1.1);
 }
 
-/* Empty State */
+/* حالة عدم وجود مجموعات */
 .empty-state {
   text-align: center;
   padding: 3rem 0;
@@ -1089,7 +1174,7 @@ input:checked + .slider:before {
   color: var(--text-secondary);
 }
 
-/* Modal Styles */
+/* النافذة المنبثقة */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1204,7 +1289,7 @@ input:checked + .slider:before {
   background-color: var(--hover-bg);
 }
 
-/* Notification */
+/* الإشعارات */
 .notification {
   position: fixed;
   bottom: 2rem;
@@ -1230,7 +1315,7 @@ input:checked + .slider:before {
   }
 }
 
-/* Footer */
+/* التذييل */
 .app-footer {
   text-align: center;
   margin-top: 3rem;
@@ -1240,7 +1325,7 @@ input:checked + .slider:before {
   font-size: 0.9rem;
 }
 
-/* Loading States */
+/* حالات التحميل */
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -1264,7 +1349,7 @@ input:checked + .slider:before {
   100% { transform: rotate(360deg); }
 }
 
-/* Theme Toggle */
+/* تبديل الوضع المظلم */
 .theme-toggle {
   position: fixed;
   bottom: 2rem;
@@ -1285,34 +1370,93 @@ input:checked + .slider:before {
   transition: var(--transition);
 }
 
-.back-button {
-  background-color: var(--primary-color);
-  color: white;
-  padding: 0.8rem 1.5rem;
-  border-radius: var(--border-radius-sm);
-  border: none;
-  cursor: pointer;
-  font-size: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: var(--transition);
-  width: 100%;
-  justify-content: center;
-  margin-top: 1rem;
-}
-
-.back-button:hover {
-  background-color: var(--primary-dark);
-  transform: translateY(-2px);
-}
-
 .theme-toggle:hover {
   transform: rotate(30deg) scale(1.1);
   background-color: var(--primary-dark);
 }
 
-/* Responsive Design */
+/* تأثيرات متحركة */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+
+.shake {
+  animation: shake 0.5s;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.pulse {
+  animation: pulse 1.5s infinite;
+}
+
+/* شريط التمرير المخصص */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--secondary-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-dark);
+}
+
+/* تأثير التموج */
+.ripple-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple-effect:after {
+  content: "";
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+  background-repeat: no-repeat;
+  background-position: 50%;
+  transform: scale(10, 10);
+  opacity: 0;
+  transition: transform .5s, opacity 1s;
+}
+
+.ripple-effect:active:after {
+  transform: scale(0, 0);
+  opacity: .3;
+  transition: 0s;
+}
+
+/* تأثيرات الوضع المظلم للصور */
+[data-theme="dark"] .member-avatar:hover {
+  box-shadow: 0 0 20px rgba(138, 180, 248, 0.7);
+}
+
+[data-theme="dark"] .profile-avatar:hover {
+  box-shadow: 0 10px 25px rgba(138, 180, 248, 0.3);
+}
+
+[data-theme="dark"] .user-avatar:hover {
+  box-shadow: 0 15px 35px rgba(138, 180, 248, 0.4);
+}
+
+/* التكيف مع الأجهزة المحمولة */
 @media (max-width: 768px) {
   .group-management {
     grid-template-columns: 1fr;
@@ -1342,6 +1486,19 @@ input:checked + .slider:before {
   .members-sidebar {
     width: 100%;
     right: -100%;
+  }
+
+  .member-avatar:hover,
+  .avatar-hover {
+    transform: scale(1.1);
+  }
+  
+  .profile-avatar:hover {
+    transform: scale(1.05);
+  }
+  
+  .user-avatar:hover {
+    transform: perspective(300px) rotateY(5deg) rotateX(5deg) scale(1.05);
   }
 }
 
@@ -1377,7 +1534,7 @@ input:checked + .slider:before {
   }
 }
 
-/* Utility Classes */
+/* فئات مساعدة */
 .text-primary {
   color: var(--primary-color);
 }
@@ -1416,62 +1573,3 @@ input:checked + .slider:before {
 .p-2 { padding: 1rem; }
 .p-3 { padding: 1.5rem; }
 .p-4 { padding: 2rem; }
-
-/* Animations */
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  20%, 60% { transform: translateX(-5px); }
-  40%, 80% { transform: translateX(5px); }
-}
-
-.shake {
-  animation: shake 0.5s;
-}
-
-@keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-}
-
-.pulse {
-  animation: pulse 1.5s infinite;
-}
-
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--secondary-bg);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--primary-color);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--primary-dark);
-}
-
-.language-buttons {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.language-button {
-  padding: 0.5rem 1rem;
-  border-radius: var(--border-radius-sm);
-  border: 1px solid var(--border-color);
-  background-color: var(--secondary-bg);
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.language-button.active {
-  background-color: var(--primary-color);
-  color: white;
-  border-color: var(--primary-dark);
-}
