@@ -90,11 +90,12 @@ function Timer({ user, onBack, groupId }) {
 
   const currentBadge = getBadge(currentLevel);
 
-  // نظام المتجر
+  // نظام المتجر مع إضافة الوصف
   const shopItems = [
     { 
       id: "boost", 
       name: "دفعة النجاح", 
+      description: "يحقق ضعف النقاط لمدة 30 دقيقة",
       price: 400, 
       icon: "⚡", 
       effect: "double_points", 
@@ -105,6 +106,7 @@ function Timer({ user, onBack, groupId }) {
     { 
       id: "focus", 
       name: "معزز التركيز", 
+      description: "يزيد سرعة تحصيل النقاط بنسبة 50% لمدة ساعة",
       price: 300, 
       icon: "🧠", 
       effect: "speed_boost", 
@@ -115,6 +117,7 @@ function Timer({ user, onBack, groupId }) {
     { 
       id: "crown", 
       name: "التاج الذهبي", 
+      description: "يظهر تاج ذهبي بجانب اسمك في لوحة المتصدرين",
       price: 600, 
       icon: "👑", 
       effect: "golden_crown", 
@@ -125,6 +128,7 @@ function Timer({ user, onBack, groupId }) {
     { 
       id: "shield", 
       name: "حافظة النقاط", 
+      description: "يحمي نقاطك من الخسارة لمدة 24 ساعة",
       price: 350, 
       icon: "🛡️", 
       effect: "points_shield", 
@@ -402,7 +406,7 @@ function Timer({ user, onBack, groupId }) {
 
   return (
     <div className="app-container">
-      {/* Top Navigation */}
+      {/* Top Navigation بدون صورة المستخدم */}
       <div className="top-tabs">
         <button 
           className="menu-toggle" 
@@ -416,8 +420,6 @@ function Timer({ user, onBack, groupId }) {
           <button 
             className={`tab-button ${activeTab === 'timer' ? 'active' : ''}`}
             onClick={() => setActiveTab('timer')}
-            onMouseEnter={(e) => e.currentTarget.classList.add('hover-effect')}
-            onMouseLeave={(e) => e.currentTarget.classList.remove('hover-effect')}
           >
             <span className="tab-icon">⏱️</span>
             <span className="tab-label">المؤقت</span>
@@ -425,8 +427,6 @@ function Timer({ user, onBack, groupId }) {
           <button 
             className={`tab-button ${activeTab === 'profile' ? 'active' : ''}`}
             onClick={() => setActiveTab('profile')}
-            onMouseEnter={(e) => e.currentTarget.classList.add('hover-effect')}
-            onMouseLeave={(e) => e.currentTarget.classList.remove('hover-effect')}
           >
             <span className="tab-icon">👤</span>
             <span className="tab-label">الملف الشخصي</span>
@@ -434,25 +434,10 @@ function Timer({ user, onBack, groupId }) {
           <button 
             className={`tab-button ${activeTab === 'shop' ? 'active' : ''}`}
             onClick={() => setActiveTab('shop')}
-            onMouseEnter={(e) => e.currentTarget.classList.add('hover-effect')}
-            onMouseLeave={(e) => e.currentTarget.classList.remove('hover-effect')}
           >
             <span className="tab-icon">🛒</span>
             <span className="tab-label">المتجر</span>
           </button>
-        </div>
-        
-        <div className="user-info">
-          <div className="avatar-container">
-            <img 
-              src={user.photoURL} 
-              alt="صورة المستخدم" 
-              className="user-avatar"
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-            />
-            {onlineUsers.includes(user.uid) && <div className="online-status"></div>}
-          </div>
         </div>
       </div>
 
@@ -471,8 +456,6 @@ function Timer({ user, onBack, groupId }) {
           <button 
             onClick={onBack} 
             className="back-button"
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-bg)'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--secondary-bg)'}
           >
             ← العودة للمجموعات
           </button>
@@ -486,8 +469,6 @@ function Timer({ user, onBack, groupId }) {
               backgroundColor: currentBadge.bgColor,
               borderLeft: `4px solid ${currentBadge.color}`
             }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
           >
             <span 
               className="badge-icon"
@@ -526,8 +507,6 @@ function Timer({ user, onBack, groupId }) {
               value={language} 
               onChange={(e) => changeLanguage(e.target.value)}
               className="language-select"
-              onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary-color)'}
-              onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
             >
               <option value="ar">العربية</option>
               <option value="en">English</option>
@@ -539,31 +518,19 @@ function Timer({ user, onBack, groupId }) {
       {/* Main Content */}
       <div className="main-content">
         {activeTab === 'timer' && (
-          <div 
-            className="timer-container"
-            onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--box-shadow-lg)'}
-            onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'var(--box-shadow)'}
-          >
+          <div className="timer-container">
             <div className="time-display">
               <h2>وقت المذاكرة</h2>
               <div className="time">{formatTime(time)}</div>
             </div>
             
             <div className="stats-display">
-              <div 
-                className="stat-box"
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-3px)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-              >
+              <div className="stat-box">
                 <span className="stat-label">النقاط</span>
                 <span className="stat-value">{points}</span>
               </div>
               
-              <div 
-                className="stat-box"
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-3px)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-              >
+              <div className="stat-box">
                 <span className="stat-label">المستوى</span>
                 <span className="stat-value">{currentLevel}</span>
               </div>
@@ -590,8 +557,6 @@ function Timer({ user, onBack, groupId }) {
                 onClick={() => setIsRunning(!isRunning)}
                 className={`control-button ${isRunning ? 'pause-button' : 'start-button'}`}
                 disabled={bannedMembers.includes(user.uid)}
-                onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.transform = 'scale(1.05)')}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
               >
                 {isRunning ? ' إيقاف' : ' بدء'}
               </button>
@@ -599,8 +564,6 @@ function Timer({ user, onBack, groupId }) {
               <button 
                 onClick={resetTimer}
                 className="control-button reset-button"
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-bg)'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--tertiary-bg)'}
               >
                  إعادة تعيين
               </button>
@@ -608,8 +571,6 @@ function Timer({ user, onBack, groupId }) {
               <button
                 onClick={() => setShowMembers(!showMembers)}
                 className="control-button members-button"
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateX(-3px)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateX(0)'}
               >
                 {showMembers ? ' إخفاء الأعضاء' : ' عرض الأعضاء'}
               </button>
@@ -618,47 +579,29 @@ function Timer({ user, onBack, groupId }) {
         )}
         
         {activeTab === 'profile' && (
-          <div 
-            className="profile-container"
-            onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--box-shadow-lg)'}
-            onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'var(--box-shadow)'}
-          >
+          <div className="profile-container">
             <div className="profile-header">
               <img 
                 src={user.photoURL} 
                 alt="صورة الملف الشخصي" 
                 className="profile-avatar"
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'rotate(5deg)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'rotate(0)'}
               />
               <h2>{user.displayName}</h2>
               <p className="user-level">المستوى {currentLevel}</p>
             </div>
             
             <div className="profile-stats">
-              <div 
-                className="stat-row"
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-bg)'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              >
+              <div className="stat-row">
                 <span className="stat-label">إجمالي النقاط:</span>
                 <span className="stat-value">{points}</span>
               </div>
               
-              <div 
-                className="stat-row"
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-bg)'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              >
+              <div className="stat-row">
                 <span className="stat-label">إجمالي وقت الدراسة:</span>
                 <span className="stat-value">{Math.floor(time / 3600)} ساعة</span>
               </div>
               
-              <div 
-                className="stat-row"
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-bg)'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              >
+              <div className="stat-row">
                 <span className="stat-label">النقاط للوصول للمستوى التالي:</span>
                 <span className="stat-value">{pointsToNextLevel}</span>
               </div>
@@ -669,12 +612,7 @@ function Timer({ user, onBack, groupId }) {
                 <h3>آخر جلسات الدراسة</h3>
                 <div className="sessions-list">
                   {studySessions.map((session, index) => (
-                    <div 
-                      key={index} 
-                      className="session-item"
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-bg)'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                    >
+                    <div key={index} className="session-item">
                       <span className="session-date">
                         {new Date(session.date).toLocaleDateString()}
                       </span>
@@ -693,11 +631,7 @@ function Timer({ user, onBack, groupId }) {
         )}
         
         {activeTab === 'shop' && (
-          <div 
-            className="shop-container"
-            onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--box-shadow-lg)'}
-            onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'var(--box-shadow)'}
-          >
+          <div className="shop-container">
             <h2>متجر النقاط</h2>
             <div className="balance-display">
               <span>رصيدك الحالي:</span>
@@ -723,6 +657,7 @@ function Timer({ user, onBack, groupId }) {
                     {item.icon}
                   </div>
                   <h3>{item.name}</h3>
+                  <p className="item-description">{item.description}</p>
                   <p className="item-price" style={{ color: item.color }}>
                     {item.price} نقطة
                   </p>
@@ -731,8 +666,6 @@ function Timer({ user, onBack, groupId }) {
                     disabled={points < item.price}
                     className={points < item.price ? 'disabled' : ''}
                     style={{ backgroundColor: item.color }}
-                    onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.transform = 'scale(1.05)')}
-                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                   >
                     {points < item.price ? 'نقاط غير كافية' : 'شراء'}
                   </button>
@@ -745,18 +678,12 @@ function Timer({ user, onBack, groupId }) {
 
       {/* Members Sidebar */}
       {showMembers && (
-        <div 
-          className="members-sidebar"
-          onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--box-shadow-lg)'}
-          onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'var(--box-shadow)'}
-        >
+        <div className="members-sidebar">
           <div className="sidebar-header">
             <h3>ترتيب المجموعة</h3>
             <button 
               className="close-sidebar" 
               onClick={() => setShowMembers(false)}
-              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent-color)'}
-              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
             >
               ✕
             </button>
@@ -776,8 +703,6 @@ function Timer({ user, onBack, groupId }) {
                     <div 
                       key={member.uid} 
                       className={`member-item ${member.uid === user.uid ? 'current-user' : ''}`}
-                      onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                      onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                     >
                       <span className="member-rank">{index + 1}</span>
                       
@@ -786,8 +711,6 @@ function Timer({ user, onBack, groupId }) {
                           src={member.photoURL} 
                           alt={member.name} 
                           className="member-avatar"
-                          onMouseEnter={(e) => e.currentTarget.style.transform = 'rotate(5deg)'}
-                          onMouseLeave={(e) => e.currentTarget.style.transform = 'rotate(0)'}
                         />
                         {onlineUsers.includes(member.uid) && <div className="online-status"></div>}
                       </div>
@@ -803,8 +726,6 @@ function Timer({ user, onBack, groupId }) {
                             onClick={() => toggleBanMember(member.uid)}
                             className="ban-button"
                             title={bannedMembers.includes(member.uid) ? "إلغاء الحظر" : "حظر العضو"}
-                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.2)'}
-                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                           >
                             {bannedMembers.includes(member.uid) ? "🚫" : "⛔"}
                           </button>
@@ -812,8 +733,6 @@ function Timer({ user, onBack, groupId }) {
                             onClick={() => removeMember(member.uid)}
                             className="remove-button"
                             title="حذف العضو"
-                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.2)'}
-                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                           >
                             ✕
                           </button>
@@ -830,12 +749,7 @@ function Timer({ user, onBack, groupId }) {
                   {members
                     .filter(member => bannedMembers.includes(member.uid))
                     .map((member) => (
-                      <div 
-                        key={member.uid} 
-                        className="member-item banned-member"
-                        onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                        onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
-                      >
+                      <div key={member.uid} className="member-item banned-member">
                         <div className="avatar-container">
                           <img 
                             src={member.photoURL} 
@@ -853,8 +767,6 @@ function Timer({ user, onBack, groupId }) {
                           <button 
                             onClick={() => toggleBanMember(member.uid)}
                             className="unban-button"
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--secondary-dark)'}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--secondary-color)'}
                           >
                             إلغاء الحظر
                           </button>
@@ -1140,8 +1052,6 @@ function App() {
         onClick={toggleDarkMode} 
         className="theme-toggle"
         aria-label={darkMode ? 'تفعيل الوضع الفاتح' : 'تفعيل الوضع الغامق'}
-        onMouseEnter={(e) => e.currentTarget.style.transform = 'rotate(30deg)'}
-        onMouseLeave={(e) => e.currentTarget.style.transform = 'rotate(0)'}
       >
         {darkMode ? '☀️' : '🌙'}
       </button>
@@ -1155,8 +1065,6 @@ function App() {
               <button 
                 className="login-button" 
                 onClick={handleLogin}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
               >
                 <span>تسجيل الدخول باستخدام Google</span>
               </button>
@@ -1168,16 +1076,12 @@ function App() {
                   src={user.photoURL} 
                   alt="صورة المستخدم" 
                   className="user-avatar"
-                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                 />
                 <div className="user-details">
                   <h2>مرحباً {user.displayName}!</h2>
                   <button 
                     className="logout-button" 
                     onClick={handleLogout}
-                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                   >
                     تسجيل الخروج
                   </button>
@@ -1189,11 +1093,7 @@ function App() {
 
         {user && (
           <div className="group-management">
-            <div 
-              className="group-creation"
-              onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--box-shadow-lg)'}
-              onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'var(--box-shadow)'}
-            >
+            <div className="group-creation">
               <h2>إنشاء مجموعة جديدة</h2>
               <div className="input-group">
                 <input
@@ -1202,31 +1102,21 @@ function App() {
                   onChange={(e) => setGroupName(e.target.value)}
                   placeholder="أدخل اسم المجموعة"
                   onKeyPress={(e) => e.key === 'Enter' && addStudyGroup()}
-                  onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary-color)'}
-                  onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
                 />
                 <button 
                   className="create-button" 
                   onClick={addStudyGroup}
-                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                 >
                   إنشاء
                 </button>
               </div>
             </div>
             
-            <div 
-              className="join-group"
-              onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--box-shadow-lg)'}
-              onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'var(--box-shadow)'}
-            >
+            <div className="join-group">
               <h2>الانضمام إلى مجموعة</h2>
               <button 
                 className="join-button"
                 onClick={() => setShowJoinModal(true)}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateX(-5px)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateX(0)'}
               >
                 الانضمام بمجموعة موجودة
               </button>
@@ -1244,18 +1134,12 @@ function App() {
                 <p>جاري تحميل المجموعات...</p>
               </div>
             ) : groups.length === 0 ? (
-              <div 
-                className="empty-state"
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-              >
+              <div className="empty-state">
                 <div className="empty-icon">📚</div>
                 <p>لا توجد مجموعات متاحة حالياً</p>
                 <button 
                   className="create-button"
                   onClick={() => document.querySelector('.group-creation input').focus()}
-                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                 >
                   إنشاء مجموعة جديدة
                 </button>
@@ -1269,10 +1153,6 @@ function App() {
                     className={`group-card ${hoveredGroup === group.id ? 'hovered' : ''}`}
                     onMouseEnter={() => setHoveredGroup(group.id)}
                     onMouseLeave={() => setHoveredGroup(null)}
-                    style={{
-                      transform: hoveredGroup === group.id ? 'perspective(1000px) rotateX(5deg)' : 'perspective(1000px) rotateX(0)',
-                      boxShadow: hoveredGroup === group.id ? '0 20px 30px rgba(0, 0, 0, 0.2)' : 'var(--box-shadow)'
-                    }}
                   >
                     <div className="group-content">
                       <h3 className="group-name">{group.name}</h3>
@@ -1287,8 +1167,6 @@ function App() {
                       <button 
                         onClick={() => handleJoinGroup(group.id)} 
                         className="join-button"
-                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                       >
                         دخول المجموعة
                       </button>
@@ -1297,8 +1175,6 @@ function App() {
                         <button 
                           onClick={() => deleteGroup(group.id)} 
                           className="delete-button"
-                          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                         >
                           حذف المجموعة
                         </button>
@@ -1316,14 +1192,10 @@ function App() {
             <div 
               className="modal-content" 
               onClick={e => e.stopPropagation()}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
             >
               <button 
                 className="close-button" 
                 onClick={() => setShowJoinModal(false)}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'rotate(90deg)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'rotate(0)'}
               >
                 &times;
               </button>
@@ -1338,24 +1210,18 @@ function App() {
                 placeholder="أدخل كود المجموعة"
                 maxLength={6}
                 className="join-input"
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary-color)'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
               />
               
               <div className="modal-actions">
                 <button 
                   onClick={joinGroupByCode} 
                   className="confirm-button"
-                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                 >
                   تأكيد الانضمام
                 </button>
                 <button 
                   onClick={() => setShowJoinModal(false)} 
                   className="cancel-button"
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-bg)'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--tertiary-bg)'}
                 >
                   إلغاء
                 </button>
