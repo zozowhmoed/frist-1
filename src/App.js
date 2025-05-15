@@ -272,12 +272,19 @@ function Timer({ user, onBack, groupId }) {
     return () => clearInterval(interval);
   }, [members]);
 
-  // Timer logic
+  // Timer logic with auto-save
   useEffect(() => {
     let interval;
     if (isRunning) {
       interval = setInterval(() => {
-        setTime(prev => prev + 1);
+        setTime(prev => {
+          const newTime = prev + 1;
+          // Auto-save every 30 seconds
+          if (newTime % 30 === 0) {
+            addStudySession(newTime, Math.floor(newTime / 30));
+          }
+          return newTime;
+        });
       }, 1000);
     }
     return () => clearInterval(interval);
@@ -378,35 +385,21 @@ function Timer({ user, onBack, groupId }) {
     }
   };
 
-  // Reset timer and save session
+  // Reset timer without saving
   const resetTimer = () => {
-    if (time > 0) {
-      addStudySession(time, Math.floor(time / 30));
-      showNotification(`📊 تم حفظ جلسة دراسة مدتها ${formatTime(time)}`);
-    }
     setIsRunning(false);
     setTime(0);
+    showNotification("⏱ تم إعادة ضبط المؤقت");
   };
 
-  // Apply active effects
-  const applyEffect = (effect) => {
-    switch(effect) {
-      case 'glow':
-        return { boxShadow: '0 0 15px rgba(245, 158, 11, 0.7)' };
-      case 'pulse':
-        return { animation: 'pulse 1.5s infinite' };
-      case 'float':
-        return { transform: 'translateY(-5px)', transition: 'all 0.3s ease' };
-      case 'shake':
-        return { animation: 'shake 0.5s infinite' };
-      default:
-        return {};
-    }
+  // Toggle members sidebar
+  const toggleMembersSidebar = () => {
+    setShowMembers(prev => !prev);
   };
 
   return (
     <div className="app-container">
-      {/* Top Navigation بدون صورة المستخدم */}
+      {/* Top Navigation */}
       <div className="top-tabs">
         <button 
           className="menu-toggle" 
@@ -503,14 +496,20 @@ function Timer({ user, onBack, groupId }) {
           
           <div className="settings-option">
             <span>اللغة:</span>
-            <select 
-              value={language} 
-              onChange={(e) => changeLanguage(e.target.value)}
-              className="language-select"
-            >
-              <option value="ar">العربية</option>
-              <option value="en">English</option>
-            </select>
+            <div className="language-buttons">
+              <button 
+                className={`language-button ${language === 'ar' ? 'active' : ''}`}
+                onClick={() => changeLanguage('ar')}
+              >
+                العربية
+              </button>
+              <button 
+                className={`language-button ${language === 'en' ? 'active' : ''}`}
+                onClick={() => changeLanguage('en')}
+              >
+                English
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -569,7 +568,7 @@ function Timer({ user, onBack, groupId }) {
               </button>
               
               <button
-                onClick={() => setShowMembers(!showMembers)}
+                onClick={toggleMembersSidebar}
                 className="control-button members-button"
               >
                 {showMembers ? ' إخفاء الأعضاء' : ' عرض الأعضاء'}
@@ -645,7 +644,6 @@ function Timer({ user, onBack, groupId }) {
                   style={{ 
                     borderColor: item.color,
                     backgroundColor: item.bgColor,
-                    ...(hoveredItem === item.id ? applyEffect(item.hoverEffect) : {})
                   }}
                   onMouseEnter={() => setHoveredItem(item.id)}
                   onMouseLeave={() => setHoveredItem(null)}
@@ -677,109 +675,107 @@ function Timer({ user, onBack, groupId }) {
       </div>
 
       {/* Members Sidebar */}
-      {showMembers && (
-        <div className="members-sidebar">
-          <div className="sidebar-header">
-            <h3>ترتيب المجموعة</h3>
-            <button 
-              className="close-sidebar" 
-              onClick={() => setShowMembers(false)}
-            >
-              ✕
-            </button>
+      <div className={`members-sidebar ${showMembers ? 'show' : ''}`}>
+        <div className="sidebar-header">
+          <h3>ترتيب المجموعة</h3>
+          <button 
+            className="close-sidebar" 
+            onClick={toggleMembersSidebar}
+          >
+            ✕
+          </button>
+        </div>
+        
+        {loadingMembers ? (
+          <div className="loading-container">
+            <div className="spinner"></div>
+            <p>جاري تحميل الأعضاء...</p>
           </div>
-          
-          {loadingMembers ? (
-            <div className="loading-container">
-              <div className="spinner"></div>
-              <p>جاري تحميل الأعضاء...</p>
+        ) : (
+          <>
+            <div className="leaderboard">
+              {members
+                .filter(member => !bannedMembers.includes(member.uid))
+                .map((member, index) => (
+                  <div 
+                    key={member.uid} 
+                    className={`member-item ${member.uid === user.uid ? 'current-user' : ''}`}
+                  >
+                    <span className="member-rank">{index + 1}</span>
+                    
+                    <div className="avatar-container">
+                      <img 
+                        src={member.photoURL} 
+                        alt={member.name} 
+                        className="member-avatar"
+                      />
+                      {onlineUsers.includes(member.uid) && <div className="online-status"></div>}
+                    </div>
+                    
+                    <div className="member-info">
+                      <span className="member-name">{member.name}</span>
+                      <span className="member-points">{member.points} نقطة</span>
+                    </div>
+                    
+                    {isCreator && member.uid !== user.uid && (
+                      <div className="member-actions">
+                        <button 
+                          onClick={() => toggleBanMember(member.uid)}
+                          className="ban-button"
+                          title={bannedMembers.includes(member.uid) ? "إلغاء الحظر" : "حظر العضو"}
+                        >
+                          {bannedMembers.includes(member.uid) ? "🚫" : "⛔"}
+                        </button>
+                        <button 
+                          onClick={() => removeMember(member.uid)}
+                          className="remove-button"
+                          title="حذف العضو"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))
+              }
             </div>
-          ) : (
-            <>
-              <div className="leaderboard">
+            
+            {bannedMembers.length > 0 && (
+              <div className="banned-section">
+                <h4>الأعضاء المحظورين</h4>
                 {members
-                  .filter(member => !bannedMembers.includes(member.uid))
-                  .map((member, index) => (
-                    <div 
-                      key={member.uid} 
-                      className={`member-item ${member.uid === user.uid ? 'current-user' : ''}`}
-                    >
-                      <span className="member-rank">{index + 1}</span>
-                      
+                  .filter(member => bannedMembers.includes(member.uid))
+                  .map((member) => (
+                    <div key={member.uid} className="member-item banned-member">
                       <div className="avatar-container">
                         <img 
                           src={member.photoURL} 
                           alt={member.name} 
                           className="member-avatar"
                         />
-                        {onlineUsers.includes(member.uid) && <div className="online-status"></div>}
                       </div>
                       
                       <div className="member-info">
                         <span className="member-name">{member.name}</span>
-                        <span className="member-points">{member.points} نقطة</span>
+                        <span className="banned-label">محظور</span>
                       </div>
                       
-                      {isCreator && member.uid !== user.uid && (
-                        <div className="member-actions">
-                          <button 
-                            onClick={() => toggleBanMember(member.uid)}
-                            className="ban-button"
-                            title={bannedMembers.includes(member.uid) ? "إلغاء الحظر" : "حظر العضو"}
-                          >
-                            {bannedMembers.includes(member.uid) ? "🚫" : "⛔"}
-                          </button>
-                          <button 
-                            onClick={() => removeMember(member.uid)}
-                            className="remove-button"
-                            title="حذف العضو"
-                          >
-                            ✕
-                          </button>
-                        </div>
+                      {isCreator && (
+                        <button 
+                          onClick={() => toggleBanMember(member.uid)}
+                          className="unban-button"
+                        >
+                          إلغاء الحظر
+                        </button>
                       )}
                     </div>
                   ))
                 }
               </div>
-              
-              {bannedMembers.length > 0 && (
-                <div className="banned-section">
-                  <h4>الأعضاء المحظورين</h4>
-                  {members
-                    .filter(member => bannedMembers.includes(member.uid))
-                    .map((member) => (
-                      <div key={member.uid} className="member-item banned-member">
-                        <div className="avatar-container">
-                          <img 
-                            src={member.photoURL} 
-                            alt={member.name} 
-                            className="member-avatar"
-                          />
-                        </div>
-                        
-                        <div className="member-info">
-                          <span className="member-name">{member.name}</span>
-                          <span className="banned-label">محظور</span>
-                        </div>
-                        
-                        {isCreator && (
-                          <button 
-                            onClick={() => toggleBanMember(member.uid)}
-                            className="unban-button"
-                          >
-                            إلغاء الحظر
-                          </button>
-                        )}
-                      </div>
-                    ))
-                  }
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
+            )}
+          </>
+        )}
+      </div>
 
       {/* Notification */}
       {notification && (
@@ -800,9 +796,7 @@ function App() {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [darkMode, setDarkMode] = useState(false);
-  const [language, setLanguage] = useState('ar');
   const [notification, setNotification] = useState(null);
-  const [hoveredGroup, setHoveredGroup] = useState(null);
 
   // Show notification
   const showNotification = (message) => {
@@ -1013,14 +1007,14 @@ function App() {
         setSelectedGroup(groupToJoin.id);
         setShowJoinModal(false);
         setJoinCode('');
-        showNotification(`🎉 تم الانضمام إلى مجموعة "${groupToJoin.name}"`);
+        showNotification(`تم الانضمام إلى مجموعة "${groupToJoin.name}"`);
         await fetchUserGroups(user.uid);
       } else {
-        showNotification("❌ لا توجد مجموعة بهذا الكود");
+        showNotification("لا توجد مجموعة بهذا الكود");
       }
     } catch (error) {
       console.error("Error joining group:", error);
-      showNotification("❌ حدث خطأ أثناء الانضمام للمجموعة");
+      showNotification("حدث خطأ أثناء الانضمام للمجموعة");
     }
   };
 
@@ -1062,27 +1056,17 @@ function App() {
             <div className="welcome-screen">
               <h1>مجموعات الدراسة التعاونية</h1>
               <p>انضم إلى مجتمع المذاكرة مع الأصدقاء وحقق أهدافك التعليمية</p>
-              <button 
-                className="login-button" 
-                onClick={handleLogin}
-              >
+              <button className="login-button" onClick={handleLogin}>
                 <span>تسجيل الدخول باستخدام Google</span>
               </button>
             </div>
           ) : (
             <div className="user-welcome">
               <div className="user-info">
-                <img 
-                  src={user.photoURL} 
-                  alt="صورة المستخدم" 
-                  className="user-avatar"
-                />
+                <img src={user.photoURL} alt="صورة المستخدم" className="user-avatar" />
                 <div className="user-details">
                   <h2>مرحباً {user.displayName}!</h2>
-                  <button 
-                    className="logout-button" 
-                    onClick={handleLogout}
-                  >
+                  <button className="logout-button" onClick={handleLogout}>
                     تسجيل الخروج
                   </button>
                 </div>
@@ -1103,10 +1087,7 @@ function App() {
                   placeholder="أدخل اسم المجموعة"
                   onKeyPress={(e) => e.key === 'Enter' && addStudyGroup()}
                 />
-                <button 
-                  className="create-button" 
-                  onClick={addStudyGroup}
-                >
+                <button className="create-button" onClick={addStudyGroup}>
                   إنشاء
                 </button>
               </div>
@@ -1135,7 +1116,7 @@ function App() {
               </div>
             ) : groups.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-icon">📚</div>
+                <img src="/empty-groups.svg" alt="لا توجد مجموعات" className="empty-image" />
                 <p>لا توجد مجموعات متاحة حالياً</p>
                 <button 
                   className="create-button"
@@ -1147,13 +1128,7 @@ function App() {
             ) : (
               <div className="groups-grid">
                 {groups.map((group) => (
-                  <div 
-                    key={group.id} 
-                    id={`group-${group.id}`} 
-                    className={`group-card ${hoveredGroup === group.id ? 'hovered' : ''}`}
-                    onMouseEnter={() => setHoveredGroup(group.id)}
-                    onMouseLeave={() => setHoveredGroup(null)}
-                  >
+                  <div key={group.id} id={`group-${group.id}`} className="group-card">
                     <div className="group-content">
                       <h3 className="group-name">{group.name}</h3>
                       <p className="group-meta">
@@ -1189,14 +1164,8 @@ function App() {
         
         {showJoinModal && (
           <div className="modal-overlay" onClick={() => setShowJoinModal(false)}>
-            <div 
-              className="modal-content" 
-              onClick={e => e.stopPropagation()}
-            >
-              <button 
-                className="close-button" 
-                onClick={() => setShowJoinModal(false)}
-              >
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <button className="close-button" onClick={() => setShowJoinModal(false)}>
                 &times;
               </button>
               
@@ -1213,10 +1182,7 @@ function App() {
               />
               
               <div className="modal-actions">
-                <button 
-                  onClick={joinGroupByCode} 
-                  className="confirm-button"
-                >
+                <button onClick={joinGroupByCode} className="confirm-button">
                   تأكيد الانضمام
                 </button>
                 <button 
