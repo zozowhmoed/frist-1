@@ -1,24 +1,24 @@
 {
   "files": {
-    "main.css": "/frist-1/static/css/main.cffd7026.chunk.css",
-    "main.js": "/frist-1/static/js/main.5974a4cd.chunk.js",
-    "main.js.map": "/frist-1/static/js/main.5974a4cd.chunk.js.map",
-    "runtime-main.js": "/frist-1/static/js/runtime-main.68b7b9f6.js",
-    "runtime-main.js.map": "/frist-1/static/js/runtime-main.68b7b9f6.js.map",
-    "static/js/2.365c0bd5.chunk.js": "/frist-1/static/js/2.365c0bd5.chunk.js",
-    "static/js/2.365c0bd5.chunk.js.map": "/frist-1/static/js/2.365c0bd5.chunk.js.map",
-    "static/js/3.1501c476.chunk.js": "/frist-1/static/js/3.1501c476.chunk.js",
-    "static/js/3.1501c476.chunk.js.map": "/frist-1/static/js/3.1501c476.chunk.js.map",
-    "index.html": "/frist-1/index.html",
-    "service-worker.js": "/frist-1/service-worker.js",
-    "service-worker.js.map": "/frist-1/service-worker.js.map",
-    "static/css/main.cffd7026.chunk.css.map": "/frist-1/static/css/main.cffd7026.chunk.css.map",
-    "static/js/2.365c0bd5.chunk.js.LICENSE.txt": "/frist-1/static/js/2.365c0bd5.chunk.js.LICENSE.txt"
+    "main.css": "/time-capsule/static/css/main.cffd7026.chunk.css",
+    "main.js": "/time-capsule/static/js/main.20afd314.chunk.js",
+    "main.js.map": "/time-capsule/static/js/main.20afd314.chunk.js.map",
+    "runtime-main.js": "/time-capsule/static/js/runtime-main.a26ceb7d.js",
+    "runtime-main.js.map": "/time-capsule/static/js/runtime-main.a26ceb7d.js.map",
+    "static/js/2.bd64b0c1.chunk.js": "/time-capsule/static/js/2.bd64b0c1.chunk.js",
+    "static/js/2.bd64b0c1.chunk.js.map": "/time-capsule/static/js/2.bd64b0c1.chunk.js.map",
+    "static/js/3.ce46c669.chunk.js": "/time-capsule/static/js/3.ce46c669.chunk.js",
+    "static/js/3.ce46c669.chunk.js.map": "/time-capsule/static/js/3.ce46c669.chunk.js.map",
+    "index.html": "/time-capsule/index.html",
+    "service-worker.js": "/time-capsule/service-worker.js",
+    "service-worker.js.map": "/time-capsule/service-worker.js.map",
+    "static/css/main.cffd7026.chunk.css.map": "/time-capsule/static/css/main.cffd7026.chunk.css.map",
+    "static/js/2.bd64b0c1.chunk.js.LICENSE.txt": "/time-capsule/static/js/2.bd64b0c1.chunk.js.LICENSE.txt"
   },
   "entrypoints": [
-    "static/js/runtime-main.68b7b9f6.js",
-    "static/js/2.365c0bd5.chunk.js",
+    "static/js/runtime-main.a26ceb7d.js",
+    "static/js/2.bd64b0c1.chunk.js",
     "static/css/main.cffd7026.chunk.css",
-    "static/js/main.5974a4cd.chunk.js"
+    "static/js/main.20afd314.chunk.js"
   ]
 }
