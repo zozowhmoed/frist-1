@@ -1,8 +1,8 @@
 {
   "files": {
-    "main.css": "/frist-1/static/css/main.88bfc176.chunk.css",
-    "main.js": "/frist-1/static/js/main.9b418adc.chunk.js",
-    "main.js.map": "/frist-1/static/js/main.9b418adc.chunk.js.map",
+    "main.css": "/frist-1/static/css/main.fceb8331.chunk.css",
+    "main.js": "/frist-1/static/js/main.99688452.chunk.js",
+    "main.js.map": "/frist-1/static/js/main.99688452.chunk.js.map",
     "runtime-main.js": "/frist-1/static/js/runtime-main.68b7b9f6.js",
     "runtime-main.js.map": "/frist-1/static/js/runtime-main.68b7b9f6.js.map",
     "static/js/2.365c0bd5.chunk.js": "/frist-1/static/js/2.365c0bd5.chunk.js",
@@ -12,13 +12,13 @@
     "index.html": "/frist-1/index.html",
     "service-worker.js": "/frist-1/service-worker.js",
     "service-worker.js.map": "/frist-1/service-worker.js.map",
-    "static/css/main.88bfc176.chunk.css.map": "/frist-1/static/css/main.88bfc176.chunk.css.map",
+    "static/css/main.fceb8331.chunk.css.map": "/frist-1/static/css/main.fceb8331.chunk.css.map",
     "static/js/2.365c0bd5.chunk.js.LICENSE.txt": "/frist-1/static/js/2.365c0bd5.chunk.js.LICENSE.txt"
   },
   "entrypoints": [
     "static/js/runtime-main.68b7b9f6.js",
     "static/js/2.365c0bd5.chunk.js",
-    "static/css/main.88bfc176.chunk.css",
-    "static/js/main.9b418adc.chunk.js"
+    "static/css/main.fceb8331.chunk.css",
+    "static/js/main.99688452.chunk.js"
   ]
 }
