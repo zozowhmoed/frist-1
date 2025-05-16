@@ -31,13 +31,16 @@ function Timer({ user, onBack, groupId }) {
   const [loadingMembers, setLoadingMembers] = useState(true);
   const [bannedMembers, setBannedMembers] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [showProfileModal, setShowProfileModal] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [language, setLanguage] = useState('ar');
   const [notification, setNotification] = useState(null);
   const [studySessions, setStudySessions] = useState([]);
+  const [activeTab, setActiveTab] = useState('timer');
+  const [sideMenuOpen, setSideMenuOpen] = useState(false);
+  const [inventory, setInventory] = useState([]);
+  const [activeEffects, setActiveEffects] = useState([]);
+  const [hoveredItem, setHoveredItem] = useState(null);
+  const [hoveredAvatar, setHoveredAvatar] = useState(null);
 
   // Calculate user level with exponential growth
   const calculateLevel = (points) => {
@@ -66,20 +69,111 @@ function Timer({ user, onBack, groupId }) {
 
   const { currentLevel, progress, pointsToNextLevel } = calculateLevel(points);
 
+  // نظام الشعارات
+  const getBadge = (level) => {
+    const badges = {
+      1: { name: "البذرة", icon: "🌱", color: "var(--secondary-color)", bgColor: "rgba(16, 185, 129, 0.1)" },
+      5: { name: "المتدرب", icon: "📖", color: "var(--primary-color)", bgColor: "rgba(79, 70, 229, 0.1)" },
+      10: { name: "المجتهد", icon: "🎓", color: "var(--warning-color)", bgColor: "rgba(245, 158, 11, 0.1)" },
+      20: { name: "الخبير", icon: "🔍", color: "var(--accent-color)", bgColor: "rgba(239, 68, 68, 0.1)" },
+      30: { name: "العبقري", icon: "🧠", color: "var(--primary-dark)", bgColor: "rgba(67, 56, 202, 0.1)" },
+      50: { name: "الأسطورة", icon: "🏆", color: "var(--warning-dark)", bgColor: "rgba(217, 119, 6, 0.1)" },
+      100: { name: "رائد المعرفة", icon: "🚀", color: "var(--secondary-dark)", bgColor: "rgba(5, 150, 105, 0.1)" }
+    };
+    
+    const eligibleLevels = Object.keys(badges)
+      .map(Number)
+      .filter(lvl => level >= lvl)
+      .sort((a, b) => b - a);
+    
+    return badges[eligibleLevels[0]] || badges[1];
+  };
+
+  const currentBadge = getBadge(currentLevel);
+
+  // نظام المتجر مع إضافة الوصف
+  const shopItems = [
+    { 
+      id: "boost", 
+      name: "دفعة النجاح", 
+      description: "يحقق ضعف النقاط لمدة 30 دقيقة",
+      price: 400, 
+      icon: "⚡", 
+      effect: "double_points", 
+      color: "var(--warning-color)",
+      bgColor: "rgba(245, 158, 11, 0.1)",
+      hoverEffect: "glow"
+    },
+    { 
+      id: "focus", 
+      name: "معزز التركيز", 
+      description: "يزيد سرعة تحصيل النقاط بنسبة 50% لمدة ساعة",
+      price: 300, 
+      icon: "🧠", 
+      effect: "speed_boost", 
+      color: "var(--primary-color)",
+      bgColor: "rgba(79, 70, 229, 0.1)",
+      hoverEffect: "pulse"
+    },
+    { 
+      id: "crown", 
+      name: "التاج الذهبي", 
+      description: "يظهر تاج ذهبي بجانب اسمك في لوحة المتصدرين",
+      price: 600, 
+      icon: "👑", 
+      effect: "golden_crown", 
+      color: "var(--warning-dark)",
+      bgColor: "rgba(217, 119, 6, 0.1)",
+      hoverEffect: "float"
+    },
+    { 
+      id: "shield", 
+      name: "حافظة النقاط", 
+      description: "يحمي نقاطك من الخسارة لمدة 24 ساعة",
+      price: 350, 
+      icon: "🛡️", 
+      effect: "points_shield", 
+      color: "var(--secondary-color)",
+      bgColor: "rgba(16, 185, 129, 0.1)",
+      hoverEffect: "shake"
+    }
+  ];
+
+  const purchaseItem = async (item) => {
+    if (points >= item.price) {
+      try {
+        await runTransaction(db, async (transaction) => {
+          const userDoc = await transaction.get(doc(db, "users", user.uid));
+          transaction.update(doc(db, "users", user.uid), {
+            points: userDoc.data().points - item.price,
+            inventory: arrayUnion(item.id)
+          });
+        });
+        showNotification(`🎉 تم شراء ${item.name}!`);
+        setInventory([...inventory, item.id]);
+      } catch (error) {
+        console.error("Error purchasing item:", error);
+        showNotification("⚠️ حدث خطأ أثناء الشراء");
+      }
+    } else {
+      showNotification("❌ نقاطك غير كافية!");
+    }
+  };
+
   // Toggle dark/light theme
   const toggleDarkMode = () => {
     const newMode = !darkMode;
     setDarkMode(newMode);
     document.documentElement.setAttribute('data-theme', newMode ? 'dark' : 'light');
     localStorage.setItem('darkMode', JSON.stringify(newMode));
-    showNotification(newMode ? 'تم تفعيل الوضع المظلم' : 'تم تفعيل الوضع الفاتح');
+    showNotification(newMode ? '🌙 تم تفعيل الوضع المظلم' : '☀️ تم تفعيل الوضع الفاتح');
   };
 
   // Change language
   const changeLanguage = (lang) => {
     setLanguage(lang);
     localStorage.setItem('language', lang);
-    showNotification(lang === 'ar' ? 'تم تغيير اللغة إلى العربية' : 'Language changed to English');
+    showNotification(lang === 'ar' ? '🇸🇦 تم تغيير اللغة إلى العربية' : '🇬🇧 Language changed to English');
   };
 
   // Show notification
@@ -179,12 +273,19 @@ function Timer({ user, onBack, groupId }) {
     return () => clearInterval(interval);
   }, [members]);
 
-  // Timer logic
+  // Timer logic with auto-save
   useEffect(() => {
     let interval;
     if (isRunning) {
       interval = setInterval(() => {
-        setTime(prev => prev + 1);
+        setTime(prev => {
+          const newTime = prev + 1;
+          // Auto-save every 30 seconds
+          if (newTime % 30 === 0) {
+            addStudySession(newTime, Math.floor(newTime / 30));
+          }
+          return newTime;
+        });
       }, 1000);
     }
     return () => clearInterval(interval);
@@ -236,10 +337,10 @@ function Timer({ user, onBack, groupId }) {
             userPoints: updatedUserPoints
           });
         });
-        showNotification("تم حذف العضو بنجاح");
+        showNotification("✅ تم حذف العضو بنجاح");
       } catch (error) {
         console.error("Error removing member:", error);
-        showNotification("حدث خطأ أثناء حذف العضو");
+        showNotification("❌ حدث خطأ أثناء حذف العضو");
       }
     }
   };
@@ -277,219 +378,214 @@ function Timer({ user, onBack, groupId }) {
           transaction.update(doc(db, "studyGroups", groupId), updates);
         });
         
-        showNotification(`تم ${bannedMembers.includes(memberId) ? 'إلغاء حظر' : 'حظر'} العضو بنجاح`);
+        showNotification(`✅ تم ${bannedMembers.includes(memberId) ? 'إلغاء حظر' : 'حظر'} العضو بنجاح`);
       } catch (error) {
         console.error("Error updating banned members:", error);
-        showNotification("حدث خطأ أثناء تحديث قائمة الحظر");
+        showNotification("❌ حدث خطأ أثناء تحديث قائمة الحظر");
       }
     }
   };
 
-  // Reset timer and save session
+  // Reset timer without saving
   const resetTimer = () => {
-    if (time > 0) {
-      addStudySession(time, Math.floor(time / 30));
-    }
     setIsRunning(false);
     setTime(0);
+    showNotification("⏱ تم إعادة ضبط المؤقت");
+  };
+
+  // Toggle members sidebar
+  const toggleMembersSidebar = () => {
+    setShowMembers(prev => !prev);
   };
 
   return (
-    <div className="timer-container">
-      {/* Header Section */}
-      <div className="timer-header">
-        <button onClick={onBack} className="back-button">
-          ← العودة للمجموعات
+    <div className="app-container">
+      {/* Top Navigation */}
+      <div className="top-tabs">
+        <button 
+          className="menu-toggle" 
+          onClick={() => setSideMenuOpen(!sideMenuOpen)}
+          aria-label="قائمة"
+        >
+          ☰
         </button>
         
-        <div className="user-info" onClick={() => setShowProfileMenu(!showProfileMenu)}>
-          <div className="avatar-container">
-            <img src={user.photoURL} alt="صورة المستخدم" className="user-avatar" />
-            {onlineUsers.includes(user.uid) && <div className="online-status"></div>}
-          </div>
-          <span className="user-display-name">{user.displayName}</span>
-          {bannedMembers.includes(user.uid) && (
-            <span className="banned-warning">(حسابك محظور)</span>
-          )}
-        </div>
-      </div>
-
-      {/* Profile Menu */}
-      {showProfileMenu && (
-        <div className="profile-menu">
-          <div className="menu-item" onClick={() => {
-            setShowProfileModal(true);
-            setShowProfileMenu(false);
-          }}>
-            الملف الشخصي
-          </div>
-          <div className="menu-item" onClick={() => {
-            setShowSettingsModal(true);
-            setShowProfileMenu(false);
-          }}>
-            الإعدادات
-          </div>
-        </div>
-      )}
-
-      {/* Main Timer Display */}
-      <div className="timer-display">
-        <div className="time-display">
-          <h2>وقت المذاكرة</h2>
-          <div className="time">{formatTime(time)}</div>
-        </div>
-        
-        <div className="stats-display">
-          <div className="stat-box">
-            <span className="stat-label">النقاط</span>
-            <span className="stat-value">{points}</span>
-          </div>
-          
-          <div className="stat-box">
-            <span className="stat-label">المستوى</span>
-            <span className="stat-value">{currentLevel}</span>
-          </div>
-        </div>
-        
-        {/* Progress Bar */}
-        <div className="progress-container">
-          <div className="progress-label">
-            <span>التقدم للمستوى {currentLevel + 1}</span>
-            <span>{Math.round(progress)}%</span>
-          </div>
-          <div className="progress-bar">
-            <div 
-              className="progress-fill"
-              style={{ width: `${progress}%` }}
-            ></div>
-          </div>
-          <div className="progress-text">
-            {pointsToNextLevel} نقطة متبقية للوصول للمستوى التالي
-          </div>
-        </div>
-        
-        {/* Timer Controls */}
-        <div className="timer-controls">
+        <div className="main-tabs">
           <button 
-            onClick={() => setIsRunning(!isRunning)}
-            className={`control-button ${isRunning ? 'pause-button' : 'start-button'}`}
-            disabled={bannedMembers.includes(user.uid)}
+            className={`tab-button ${activeTab === 'timer' ? 'active' : ''}`}
+            onClick={() => setActiveTab('timer')}
           >
-            {isRunning ? 'إيقاف' : 'بدء'}
+            <span className="tab-icon">⏱️</span>
+            <span className="tab-label">المؤقت</span>
           </button>
-          
           <button 
-            onClick={resetTimer}
-            className="control-button reset-button"
+            className={`tab-button ${activeTab === 'profile' ? 'active' : ''}`}
+            onClick={() => setActiveTab('profile')}
           >
-            إعادة تعيين
+            <span className="tab-icon">👤</span>
+            <span className="tab-label">الملف الشخصي</span>
           </button>
-          
-          <button
-            onClick={() => setShowMembers(!showMembers)}
-            className="control-button members-button"
+          <button 
+            className={`tab-button ${activeTab === 'shop' ? 'active' : ''}`}
+            onClick={() => setActiveTab('shop')}
           >
-            {showMembers ? 'إخفاء الأعضاء' : 'عرض الأعضاء'}
+            <span className="tab-icon">🛒</span>
+            <span className="tab-label">المتجر</span>
           </button>
         </div>
       </div>
 
-      {/* Members Sidebar */}
-      {showMembers && (
-        <div className="members-sidebar">
-          <h3>ترتيب المجموعة</h3>
-          
-          {loadingMembers ? (
-            <div className="loading-container">
-              <div className="spinner"></div>
-              <p>جاري تحميل الأعضاء...</p>
+      {/* Side Menu */}
+      <div className={`side-menu ${sideMenuOpen ? 'open' : ''}`}>
+        <button 
+          className="close-menu" 
+          onClick={() => setSideMenuOpen(false)}
+          aria-label="إغلاق القائمة"
+        >
+          ✕
+        </button>
+        
+        <div className="menu-section">
+          <h3>مجموعاتك</h3>
+          <button 
+            onClick={onBack} 
+            className="back-button"
+          >
+            ← العودة للمجموعات
+          </button>
+        </div>
+        
+        <div className="menu-section">
+          <h3>إنجازاتك</h3>
+          <div 
+            className="badge-display" 
+            style={{ 
+              backgroundColor: currentBadge.bgColor,
+              borderLeft: `4px solid ${currentBadge.color}`
+            }}
+          >
+            <span 
+              className="badge-icon"
+              style={{ color: currentBadge.color }}
+            >
+              {currentBadge.icon}
+            </span>
+            <div className="badge-info">
+              <span className="badge-name" style={{ color: currentBadge.color }}>
+                {currentBadge.name}
+              </span>
+              <span className="badge-level" style={{ color: currentBadge.color }}>
+                المستوى {currentLevel}
+              </span>
             </div>
-          ) : (
-            <>
-              <div className="leaderboard">
-                {members
-                  .filter(member => !bannedMembers.includes(member.uid))
-                  .map((member, index) => (
-                    <div key={member.uid} className={`member-item ${member.uid === user.uid ? 'current-user' : ''}`}>
-                      <span className="member-rank">{index + 1}</span>
-                      
-                      <div className="avatar-container">
-                        <img src={member.photoURL} alt={member.name} className="member-avatar" />
-                        {onlineUsers.includes(member.uid) && <div className="online-status"></div>}
-                      </div>
-                      
-                      <div className="member-info">
-                        <span className="member-name">{member.name}</span>
-                        <span className="member-points">{member.points} نقطة</span>
-                      </div>
-                      
-                      {isCreator && member.uid !== user.uid && (
-                        <div className="member-actions">
-                          <button 
-                            onClick={() => toggleBanMember(member.uid)}
-                            className="ban-button"
-                            title={bannedMembers.includes(member.uid) ? "إلغاء الحظر" : "حظر العضو"}
-                          >
-                            {bannedMembers.includes(member.uid) ? "🚫" : "⛔"}
-                          </button>
-                          <button 
-                            onClick={() => removeMember(member.uid)}
-                            className="remove-button"
-                            title="حذف العضو"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))
-                }
+          </div>
+        </div>
+        
+        <div className="menu-section">
+          <h3>الإعدادات</h3>
+          <div className="settings-option">
+            <span>الوضع المظلم:</span>
+            <label className="switch">
+              <input 
+                type="checkbox" 
+                checked={darkMode} 
+                onChange={toggleDarkMode}
+              />
+              <span className="slider round"></span>
+            </label>
+          </div>
+          
+          <div className="settings-option">
+            <span>اللغة:</span>
+            <div className="language-buttons">
+              <button 
+                className={`language-button ${language === 'ar' ? 'active' : ''}`}
+                onClick={() => changeLanguage('ar')}
+              >
+                العربية
+              </button>
+              <button 
+                className={`language-button ${language === 'en' ? 'active' : ''}`}
+                onClick={() => changeLanguage('en')}
+              >
+                English
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="main-content">
+        {activeTab === 'timer' && (
+          <div className="timer-container">
+            <div className="time-display">
+              <h2>وقت المذاكرة</h2>
+              <div className="time">{formatTime(time)}</div>
+            </div>
+            
+            <div className="stats-display">
+              <div className="stat-box">
+                <span className="stat-label">النقاط</span>
+                <span className="stat-value">{points}</span>
               </div>
               
-              {bannedMembers.length > 0 && (
-                <div className="banned-section">
-                  <h4>الأعضاء المحظورين</h4>
-                  {members
-                    .filter(member => bannedMembers.includes(member.uid))
-                    .map((member) => (
-                      <div key={member.uid} className="member-item banned-member">
-                        <div className="avatar-container">
-                          <img src={member.photoURL} alt={member.name} className="member-avatar" />
-                        </div>
-                        
-                        <div className="member-info">
-                          <span className="member-name">{member.name}</span>
-                          <span className="banned-label">محظور</span>
-                        </div>
-                        
-                        {isCreator && (
-                          <button 
-                            onClick={() => toggleBanMember(member.uid)}
-                            className="unban-button"
-                          >
-                            إلغاء الحظر
-                          </button>
-                        )}
-                      </div>
-                    ))
-                  }
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Profile Modal */}
-      {showProfileModal && (
-        <div className="modal-overlay" onClick={() => setShowProfileModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="close-button" onClick={() => setShowProfileModal(false)}>
-              &times;
-            </button>
+              <div className="stat-box">
+                <span className="stat-label">المستوى</span>
+                <span className="stat-value">{currentLevel}</span>
+              </div>
+            </div>
             
+            <div className="progress-container">
+              <div className="progress-label">
+                <span>التقدم للمستوى {currentLevel + 1}</span>
+                <span>{Math.round(progress)}%</span>
+              </div>
+              <div className="progress-bar">
+                <div 
+                  className="progress-fill"
+                  style={{ width: `${progress}%` }}
+                ></div>
+              </div>
+              <div className="progress-text">
+                {pointsToNextLevel} نقطة متبقية للوصول للمستوى التالي
+              </div>
+            </div>
+            
+            <div className="timer-controls">
+              <button 
+                onClick={() => setIsRunning(!isRunning)}
+                className={`control-button ${isRunning ? 'pause-button' : 'start-button'}`}
+                disabled={bannedMembers.includes(user.uid)}
+              >
+                {isRunning ? ' إيقاف' : ' بدء'}
+              </button>
+              
+              <button 
+                onClick={resetTimer}
+                className="control-button reset-button"
+              >
+                 إعادة تعيين
+              </button>
+              
+              <button
+                onClick={toggleMembersSidebar}
+                className="control-button members-button"
+              >
+                {showMembers ? ' إخفاء الأعضاء' : ' عرض الأعضاء'}
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {activeTab === 'profile' && (
+          <div className="profile-container">
             <div className="profile-header">
-              <img src={user.photoURL} alt="صورة الملف الشخصي" className="profile-avatar" />
+              <img 
+                src={user.photoURL} 
+                alt="صورة الملف الشخصي" 
+                className="profile-avatar"
+              />
               <h2>{user.displayName}</h2>
               <p className="user-level">المستوى {currentLevel}</p>
             </div>
@@ -532,55 +628,158 @@ function Timer({ user, onBack, groupId }) {
               </div>
             )}
           </div>
-        </div>
-      )}
-
-      {/* Settings Modal */}
-      {showSettingsModal && (
-        <div className="modal-overlay" onClick={() => setShowSettingsModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="close-button" onClick={() => setShowSettingsModal(false)}>
-              &times;
-            </button>
-            
-            <h2>الإعدادات</h2>
-            
-            <div className="settings-option">
-              <span>الوضع المظلم:</span>
-              <label className="switch">
-                <input 
-                  type="checkbox" 
-                  checked={darkMode} 
-                  onChange={toggleDarkMode}
-                />
-                <span className="slider round"></span>
-              </label>
+        )}
+        
+        {activeTab === 'shop' && (
+          <div className="shop-container">
+            <h2>متجر النقاط</h2>
+            <div className="balance-display">
+              <span>رصيدك الحالي:</span>
+              <span className="points-balance">{points} نقطة</span>
             </div>
-            
-            <div className="settings-option">
-              <span>اللغة:</span>
-              <select 
-                value={language} 
-                onChange={(e) => changeLanguage(e.target.value)}
-                className="language-select"
-              >
-                <option value="ar">العربية</option>
-                <option value="en">English</option>
-              </select>
+            <div className="shop-items">
+              {shopItems.map(item => (
+                <div 
+                  key={item.id} 
+                  className={`shop-item ${hoveredItem === item.id ? 'hovered' : ''}`}
+                  style={{ 
+                    borderColor: item.color,
+                    backgroundColor: item.bgColor,
+                  }}
+                  onMouseEnter={() => setHoveredItem(item.id)}
+                  onMouseLeave={() => setHoveredItem(null)}
+                >
+                  <div 
+                    className="item-icon" 
+                    style={{ color: item.color }}
+                  >
+                    {item.icon}
+                  </div>
+                  <h3>{item.name}</h3>
+                  <p className="item-description">{item.description}</p>
+                  <p className="item-price" style={{ color: item.color }}>
+                    {item.price} نقطة
+                  </p>
+                  <button 
+                    onClick={() => purchaseItem(item)}
+                    disabled={points < item.price}
+                    className={points < item.price ? 'disabled' : ''}
+                    style={{ backgroundColor: item.color }}
+                  >
+                    {points < item.price ? 'نقاط غير كافية' : 'شراء'}
+                  </button>
+                </div>
+              ))}
             </div>
-            
-            <button 
-              className="logout-button"
-              onClick={() => {
-                signOut(auth);
-                setShowSettingsModal(false);
-              }}
-            >
-              تسجيل الخروج
-            </button>
           </div>
+        )}
+      </div>
+
+      {/* Members Sidebar */}
+      <div className={`members-sidebar ${showMembers ? 'show' : ''}`}>
+        <div className="sidebar-header">
+          <h3>ترتيب المجموعة</h3>
+          <button 
+            className="close-sidebar" 
+            onClick={toggleMembersSidebar}
+          >
+            ✕
+          </button>
         </div>
-      )}
+        
+        {loadingMembers ? (
+          <div className="loading-container">
+            <div className="spinner"></div>
+            <p>جاري تحميل الأعضاء...</p>
+          </div>
+        ) : (
+          <>
+            <div className="leaderboard">
+              {members
+                .filter(member => !bannedMembers.includes(member.uid))
+                .map((member, index) => (
+                  <div 
+                    key={member.uid} 
+                    className={`member-item ${member.uid === user.uid ? 'current-user' : ''}`}
+                    onMouseEnter={() => setHoveredAvatar(member.uid)}
+                    onMouseLeave={() => setHoveredAvatar(null)}
+                  >
+                    <span className="member-rank">{index + 1}</span>
+                    
+                    <div className="avatar-container">
+                      <img 
+                        src={member.photoURL} 
+                        alt={member.name} 
+                        className={`member-avatar ${hoveredAvatar === member.uid ? 'avatar-hover' : ''}`}
+                      />
+                      {onlineUsers.includes(member.uid) && <div className="online-status"></div>}
+                      {hoveredAvatar === member.uid && <div className="avatar-tooltip">{member.name}</div>}
+                    </div>
+                    
+                    <div className="member-info">
+                      <span className="member-name">{member.name}</span>
+                      <span className="member-points">{member.points} نقطة</span>
+                    </div>
+                    
+                    {isCreator && member.uid !== user.uid && (
+                      <div className="member-actions">
+                        <button 
+                          onClick={() => toggleBanMember(member.uid)}
+                          className="ban-button"
+                          title={bannedMembers.includes(member.uid) ? "إلغاء الحظر" : "حظر العضو"}
+                        >
+                          {bannedMembers.includes(member.uid) ? "🚫" : "⛔"}
+                        </button>
+                        <button 
+                          onClick={() => removeMember(member.uid)}
+                          className="remove-button"
+                          title="حذف العضو"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))
+              }
+            </div>
+            
+            {bannedMembers.length > 0 && (
+              <div className="banned-section">
+                <h4>الأعضاء المحظورين</h4>
+                {members
+                  .filter(member => bannedMembers.includes(member.uid))
+                  .map((member) => (
+                    <div key={member.uid} className="member-item banned-member">
+                      <div className="avatar-container">
+                        <img 
+                          src={member.photoURL} 
+                          alt={member.name} 
+                          className="member-avatar"
+                        />
+                      </div>
+                      
+                      <div className="member-info">
+                        <span className="member-name">{member.name}</span>
+                        <span className="banned-label">محظور</span>
+                      </div>
+                      
+                      {isCreator && (
+                        <button 
+                          onClick={() => toggleBanMember(member.uid)}
+                          className="unban-button"
+                        >
+                          إلغاء الحظر
+                        </button>
+                      )}
+                    </div>
+                  ))
+                }
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       {/* Notification */}
       {notification && (
@@ -601,7 +800,6 @@ function App() {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [darkMode, setDarkMode] = useState(false);
-  const [language, setLanguage] = useState('ar');
   const [notification, setNotification] = useState(null);
 
   // Show notification
@@ -616,7 +814,7 @@ function App() {
     setDarkMode(newMode);
     document.documentElement.setAttribute('data-theme', newMode ? 'dark' : 'light');
     localStorage.setItem('darkMode', JSON.stringify(newMode));
-    showNotification(newMode ? 'تم تفعيل الوضع المظلم' : 'تم تفعيل الوضع الفاتح');
+    showNotification(newMode ? '🌙 تم تفعيل الوضع المظلم' : '☀️ تم تفعيل الوضع الفاتح');
   };
 
   // Load theme preference
@@ -690,7 +888,7 @@ function App() {
       }
     } catch (error) {
       console.error("Error fetching user groups:", error);
-      showNotification("حدث خطأ أثناء جلب المجموعات");
+      showNotification("❌ حدث خطأ أثناء جلب المجموعات");
     } finally {
       setLoadingGroups(false);
     }
@@ -701,10 +899,10 @@ function App() {
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
-      showNotification(`مرحباً ${result.user.displayName}!`);
+      showNotification(`🎉 مرحباً ${result.user.displayName}!`);
     } catch (error) {
       console.error("Error signing in:", error);
-      showNotification("حدث خطأ أثناء تسجيل الدخول");
+      showNotification("❌ حدث خطأ أثناء تسجيل الدخول");
     }
   };
 
@@ -712,7 +910,7 @@ function App() {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      showNotification("تم تسجيل الخروج بنجاح");
+      showNotification("✅ تم تسجيل الخروج بنجاح");
     } catch (error) {
       console.error("Error signing out:", error);
     }
@@ -721,7 +919,7 @@ function App() {
   // Create new group
   const addStudyGroup = async () => {
     if (!groupName.trim()) {
-      showNotification("الرجاء إدخال اسم المجموعة");
+      showNotification("⚠️ الرجاء إدخال اسم المجموعة");
       return;
     }
     
@@ -737,17 +935,17 @@ function App() {
       
       await addDoc(collection(db, "studyGroups"), newGroup);
       setGroupName('');
-      showNotification(`تم إنشاء مجموعة "${groupName.trim()}" بنجاح`);
+      showNotification(`🎉 تم إنشاء مجموعة "${groupName.trim()}" بنجاح`);
       await fetchUserGroups(user.uid);
     } catch (error) {
       console.error("Error adding group:", error);
-      showNotification("حدث خطأ أثناء إنشاء المجموعة");
+      showNotification("❌ حدث خطأ أثناء إنشاء المجموعة");
     }
   };
 
   // Delete group
   const deleteGroup = async (groupId) => {
-    if (window.confirm("هل أنت متأكد من حذف هذه المجموعة؟ سيتم حذف جميع بياناتها نهائياً")) {
+    if (window.confirm("⚠️ هل أنت متأكد من حذف هذه المجموعة؟ سيتم حذف جميع بياناتها نهائياً")) {
       try {
         const groupItem = document.getElementById(`group-${groupId}`);
         if (groupItem) {
@@ -760,11 +958,11 @@ function App() {
         }
         
         await deleteDoc(doc(db, "studyGroups", groupId));
-        showNotification("تم حذف المجموعة بنجاح");
+        showNotification("✅ تم حذف المجموعة بنجاح");
         await fetchUserGroups(user.uid);
       } catch (error) {
         console.error("Error deleting group:", error);
-        showNotification("حدث خطأ أثناء حذف المجموعة");
+        showNotification("❌ حدث خطأ أثناء حذف المجموعة");
       }
     }
   };
@@ -772,7 +970,7 @@ function App() {
   // Join group by code
   const joinGroupByCode = async () => {
     if (!joinCode.trim()) {
-      showNotification("الرجاء إدخال كود المجموعة");
+      showNotification("⚠️ الرجاء إدخال كود المجموعة");
       return;
     }
     
@@ -794,7 +992,7 @@ function App() {
       
       if (groupToJoin) {
         if (groupToJoin.bannedMembers?.includes(user.uid)) {
-          showNotification(`أنت محظور من هذه المجموعة (${groupToJoin.name})`);
+          showNotification(`🚫 أنت محظور من هذه المجموعة (${groupToJoin.name})`);
           return;
         }
         
