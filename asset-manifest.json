@@ -1,16 +1,16 @@
 {
   "files": {
-    "main.css": "/frist-1/static/css/main.e6a56965.css",
-    "main.js": "/frist-1/static/js/main.454cbbf2.js",
-    "static/js/488.b5d98a16.chunk.js": "/frist-1/static/js/488.b5d98a16.chunk.js",
+    "main.css": "/frist-1/static/css/main.6ed48fab.css",
+    "main.js": "/frist-1/static/js/main.00a7742d.js",
+    "static/js/453.3f77c9d0.chunk.js": "/frist-1/static/js/453.3f77c9d0.chunk.js",
     "service-worker.js": "/frist-1/service-worker.js",
     "index.html": "/frist-1/index.html",
-    "main.e6a56965.css.map": "/frist-1/static/css/main.e6a56965.css.map",
-    "main.454cbbf2.js.map": "/frist-1/static/js/main.454cbbf2.js.map",
-    "488.b5d98a16.chunk.js.map": "/frist-1/static/js/488.b5d98a16.chunk.js.map"
+    "main.6ed48fab.css.map": "/frist-1/static/css/main.6ed48fab.css.map",
+    "main.00a7742d.js.map": "/frist-1/static/js/main.00a7742d.js.map",
+    "453.3f77c9d0.chunk.js.map": "/frist-1/static/js/453.3f77c9d0.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.e6a56965.css",
-    "static/js/main.454cbbf2.js"
+    "static/css/main.6ed48fab.css",
+    "static/js/main.00a7742d.js"
   ]
 }
