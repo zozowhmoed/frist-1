@@ -1,12 +1,13 @@
-{
-  "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "installCommand": "npm install --legacy-peer-deps"
-      }
-    }
-  ]
-}
+echo {
+echo   "version": 2,
+echo   "builds": [
+echo     {
+echo       "src": "package.json",
+echo       "use": "@vercel/static-build",
+echo       "config": {
+echo         "installCommand": "npm install --legacy-peer-deps",
+echo         "buildCommand": "npm run build"
+echo       }
+echo     }
+echo   ]
+echo } > vercel.json
