@@ -2,7 +2,7 @@
   "name": "my_new_project",
   "version": "1.0.0",
   "private": true,
-  "homepage": "https://zozowhmoed.github.io/frist-1",
+  "homepage": ".",
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.7.2",
     "firebase": "^10.11.1",
