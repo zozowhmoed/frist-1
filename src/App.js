@@ -42,6 +42,28 @@ function Timer({ user, onBack, groupId }) {
   const [hoveredItem, setHoveredItem] = useState(null);
   const [hoveredAvatar, setHoveredAvatar] = useState(null);
 
+  // Register Service Worker
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(registration => {
+          console.log('ServiceWorker registration successful');
+        })
+        .catch(err => {
+          console.log('ServiceWorker registration failed: ', err);
+        });
+    }
+  }, []);
+
+  // Background Sync Setup
+  useEffect(() => {
+    if ('serviceWorker' in navigator && 'SyncManager' in window) {
+      navigator.serviceWorker.ready.then(registration => {
+        registration.sync.register('sync-timer');
+      });
+    }
+  }, []);
+
   // Calculate user level with exponential growth
   const calculateLevel = (points) => {
     const base = 100;
@@ -149,8 +171,12 @@ function Timer({ user, onBack, groupId }) {
             inventory: arrayUnion(item.id)
           });
         });
+        
+        // Update local state
+        setPoints(prev => prev - item.price);
+        setInventory(prev => [...prev, item.id]);
+        applyItemEffect(item);
         showNotification(`🎉 تم شراء ${item.name}!`);
-        setInventory([...inventory, item.id]);
       } catch (error) {
         console.error("Error purchasing item:", error);
         showNotification("⚠️ حدث خطأ أثناء الشراء");
@@ -159,6 +185,38 @@ function Timer({ user, onBack, groupId }) {
       showNotification("❌ نقاطك غير كافية!");
     }
   };
+
+  // Apply item effects
+  const applyItemEffect = (item) => {
+    const effectMap = {
+      'double_points': 30 * 60 * 1000, // 30 minutes
+      'speed_boost': 60 * 60 * 1000,   // 60 minutes
+      'golden_crown': 24 * 60 * 60 * 1000, // 24 hours
+      'points_shield': 24 * 60 * 60 * 1000 // 24 hours
+    };
+    
+    if (effectMap[item.effect]) {
+      setActiveEffects(prev => [
+        ...prev,
+        {
+          type: item.effect,
+          expires: Date.now() + effectMap[item.effect],
+          itemId: item.id
+        }
+      ]);
+    }
+  };
+
+  // Clean up expired effects
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveEffects(prev => 
+        prev.filter(effect => effect.expires > Date.now())
+      );
+    }, 60000); // Check every minute
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Toggle dark/light theme
   const toggleDarkMode = () => {
@@ -216,62 +274,50 @@ function Timer({ user, onBack, groupId }) {
   };
 
   // Fetch group data
-  useEffect(() => {
-    const fetchGroupData = async () => {
-      try {
-        setLoadingMembers(true);
-        const groupDoc = await getDoc(doc(db, "studyGroups", groupId));
-        if (groupDoc.exists()) {
-          const groupData = groupDoc.data();
-          setIsCreator(groupData.creator === user.uid);
-          setBannedMembers(groupData.bannedMembers || []);
+  const fetchGroupData = async () => {
+    try {
+      setLoadingMembers(true);
+      const groupDoc = await getDoc(doc(db, "studyGroups", groupId));
+      if (groupDoc.exists()) {
+        const groupData = groupDoc.data();
+        setIsCreator(groupData.creator === user.uid);
+        setBannedMembers(groupData.bannedMembers || []);
+        
+        const userPoints = groupData.userPoints?.[user.uid] || 0;
+        setPoints(userPoints);
+        
+        if (groupData.members) {
+          const membersPromises = groupData.members.map(async (uid) => {
+            const userDoc = await getDoc(doc(db, "users", uid));
+            if (userDoc.exists()) {
+              return {
+                uid,
+                name: userDoc.data().displayName,
+                photoURL: userDoc.data().photoURL,
+                points: groupData.userPoints?.[uid] || 0
+              };
+            }
+            return null;
+          });
           
-          const userPoints = groupData.userPoints?.[user.uid] || 0;
-          setPoints(userPoints);
-          
-          if (groupData.members) {
-            const membersPromises = groupData.members.map(async (uid) => {
-              const userDoc = await getDoc(doc(db, "users", uid));
-              if (userDoc.exists()) {
-                return {
-                  uid,
-                  name: userDoc.data().displayName,
-                  photoURL: userDoc.data().photoURL,
-                  points: groupData.userPoints?.[uid] || 0
-                };
-              }
-              return null;
-            });
-            
-            const membersList = (await Promise.all(membersPromises)).filter(Boolean);
-            membersList.sort((a, b) => b.points - a.points);
-            setMembers(membersList);
-          }
+          const membersList = (await Promise.all(membersPromises)).filter(Boolean);
+          membersList.sort((a, b) => b.points - a.points);
+          setMembers(membersList);
         }
-      } catch (error) {
-        console.error("Error fetching group data:", error);
-      } finally {
-        setLoadingMembers(false);
       }
-    };
-    
+    } catch (error) {
+      console.error("Error fetching group data:", error);
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
+  
+  useEffect(() => {
     fetchGroupData();
     
     const unsubscribe = onSnapshot(doc(db, "studyGroups", groupId), fetchGroupData);
     return () => unsubscribe();
   }, [groupId, user.uid]);
-
-  // Simulate online users
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const randomOnline = members
-        .filter(() => Math.random() > 0.7)
-        .map(member => member.uid);
-      setOnlineUsers(randomOnline);
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [members]);
 
   // Timer logic with auto-save
   useEffect(() => {
@@ -280,21 +326,23 @@ function Timer({ user, onBack, groupId }) {
       interval = setInterval(() => {
         setTime(prev => {
           const newTime = prev + 1;
-          // Auto-save every 30 seconds
+          // Auto-save every 30 seconds with double points if active
           if (newTime % 30 === 0) {
-            addStudySession(newTime, Math.floor(newTime / 30));
+            const pointsEarned = activeEffects.some(e => e.type === 'double_points') ? 2 : 1;
+            setPoints(prevPoints => prevPoints + pointsEarned);
+            addStudySession(newTime, pointsEarned);
           }
           return newTime;
         });
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isRunning]);
+  }, [isRunning, activeEffects]);
 
   // Points and level up logic
   useEffect(() => {
     if (isRunning && time > 0 && time % 30 === 0 && time !== lastUpdateTime) {
-      const newPoints = points + 1;
+      const newPoints = points + (activeEffects.some(e => e.type === 'double_points') ? 2 : 1);
       setPoints(newPoints);
       updatePoints(newPoints);
       setLastUpdateTime(time);
@@ -306,6 +354,21 @@ function Timer({ user, onBack, groupId }) {
       }
     }
   }, [time, isRunning]);
+
+  // Handle visibility changes for mobile
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Sync data when app becomes visible again
+        fetchGroupData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   // Load theme and language preferences
   useEffect(() => {
@@ -397,6 +460,18 @@ function Timer({ user, onBack, groupId }) {
   const toggleMembersSidebar = () => {
     setShowMembers(prev => !prev);
   };
+
+  // Simulate online users
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const randomOnline = members
+        .filter(() => Math.random() > 0.7)
+        .map(member => member.uid);
+      setOnlineUsers(randomOnline);
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [members]);
 
   return (
     <div className="app-container">
@@ -575,6 +650,31 @@ function Timer({ user, onBack, groupId }) {
                 {showMembers ? ' إخفاء الأعضاء' : ' عرض الأعضاء'}
               </button>
             </div>
+
+            {/* عرض التأثيرات النشطة */}
+            {activeEffects.length > 0 && (
+              <div className="active-effects">
+                <h3>التأثيرات النشطة</h3>
+                <div className="effects-list">
+                  {activeEffects.map((effect, index) => {
+                    const item = shopItems.find(i => i.id === effect.itemId);
+                    if (!item) return null;
+                    
+                    return (
+                      <div key={index} className="active-effect">
+                        <span className="effect-icon" style={{ color: item.color }}>
+                          {item.icon}
+                        </span>
+                        <span className="effect-name">{item.name}</span>
+                        <span className="effect-time">
+                          {Math.ceil((effect.expires - Date.now()) / (60 * 1000))} دقائق متبقية
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
         
@@ -641,7 +741,7 @@ function Timer({ user, onBack, groupId }) {
               {shopItems.map(item => (
                 <div 
                   key={item.id} 
-                  className={`shop-item ${hoveredItem === item.id ? 'hovered' : ''}`}
+                  className={`shop-item ${hoveredItem === item.id ? 'hovered' : ''} ${hoveredItem === item.id ? item.hoverEffect : ''}`}
                   style={{ 
                     borderColor: item.color,
                     backgroundColor: item.bgColor,
@@ -801,6 +901,21 @@ function App() {
   const [joinCode, setJoinCode] = useState('');
   const [darkMode, setDarkMode] = useState(false);
   const [notification, setNotification] = useState(null);
+
+  // Register Service Worker
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(registration => {
+            console.log('SW registered: ', registration.scope);
+          })
+          .catch(err => {
+            console.log('SW registration failed: ', err);
+          });
+      });
+    }
+  }, []);
 
   // Show notification
   const showNotification = (message) => {

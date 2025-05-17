@@ -1573,3 +1573,57 @@ input:checked + .slider:before {
 .p-2 { padding: 1rem; }
 .p-3 { padding: 1.5rem; }
 .p-4 { padding: 2rem; }
+/* إضافة هذه الأنماط للجزء السفلي من الملف */
+
+/* PWA Styles */
+@media (display-mode: standalone) {
+  body {
+    overscroll-behavior-y: contain;
+  }
+  
+  .theme-toggle {
+    bottom: 1.5rem;
+    right: 1.5rem;
+  }
+}
+
+/* Active Effects Styles */
+.active-effect-badge {
+  display: inline-block;
+  padding: 0.3rem 0.6rem;
+  border-radius: 1rem;
+  font-size: 0.8rem;
+  margin-left: 0.5rem;
+  background-color: var(--secondary-color);
+  color: white;
+}
+
+/* Shop Item Effects */
+.shop-item.hovered.glow {
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.7);
+}
+
+.shop-item.hovered.pulse {
+  animation: pulse 1.5s infinite;
+}
+
+.shop-item.hovered.float {
+  transform: translateY(-5px);
+}
+
+.shop-item.hovered.shake {
+  animation: shake 0.5s;
+}
+
+/* Background Sync Notification */
+.sync-notification {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius-sm);
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+}
