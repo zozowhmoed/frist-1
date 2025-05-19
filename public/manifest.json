@@ -1,6 +1,6 @@
 {
   "name": "TimeCapsule",
-  "short_name": "Timer",
+  "short_name": "TimeCapsule",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#ffffff",
