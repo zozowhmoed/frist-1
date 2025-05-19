@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -6,9 +6,9 @@
   <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#000000" />
-  <meta name="description" content="كبسولة الزمن - تطبيق لحفظ الذكريات الرقمية" />
+  <meta name="description" content="TimeCapsule - تطبيق لحفظ الذكريات الرقمية" />
   
-  <!-- كود Google Tag Manager المعدل -->
+  <!-- Google Tag Manager -->
   <script>(function(w,d,s,l,i){
     w[l]=w[l]||[];
     w[l].push({'gtm.start': new Date().getTime(),event:'gtm.js'});
@@ -19,21 +19,17 @@
     f.parentNode.insertBefore(j,f);
   })(window,document,'script','dataLayer','GTM-11235208587');</script>
 
-  <!-- كود Google Analytics 4 المعدل لموقع Netlify -->
+  <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-WTD7T61YJW"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    
     gtag('config', 'G-WTD7T61YJW', {
       'debug_mode': true,
       'cookie_domain': 'zozowhmoed.netlify.app',
       'cookie_flags': 'SameSite=None; Secure',
       'language': 'ar',
-      'page_title': document.title,
-      'page_path': window.location.pathname,
-      'transport_url': 'https://zozowhmoed.netlify.app',
       'app_name': 'TimeCapsule',
       'app_version': '1.0.0'
     });
@@ -42,7 +38,7 @@
   <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
   <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
   
-  <!-- خطوط عربية -->
+  <!-- الخطوط -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
@@ -67,119 +63,5 @@
   
   <noscript>يجب تفعيل جافاسكريبت لتشغيل هذا التطبيق</noscript>
   <div id="root"></div>
-
-  <!-- نظام تتبع الأحداث المخصص -->
-  <script>
-    window.trackEvent = function(eventName, eventParams) {
-      if (window.gtag) {
-        gtag('event', eventName, {
-          ...eventParams,
-          event_category: 'Custom Events',
-          event_label: 'User Interaction'
-        });
-      }
-      console.log('Event tracked:', eventName, eventParams);
-    };
-    
-    // تتبع الزيارة الأولية
-    if (window.location.hostname === 'zozowhmoed.netlify.app') {
-      gtag('event', 'first_visit', {
-        method: 'Organic'
-      });
-    }
-  </script>
 </body>
 </html>
-=======
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="utf-8" />
-  <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#000000" />
-  <meta name="description" content="كبسولة الزمن - تطبيق لحفظ الذكريات الرقمية" />
-  
-  <!-- كود Google Tag Manager المعدل -->
-  <script>(function(w,d,s,l,i){
-    w[l]=w[l]||[];
-    w[l].push({'gtm.start': new Date().getTime(),event:'gtm.js'});
-    var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';
-    j.async=true;
-    j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
-    f.parentNode.insertBefore(j,f);
-  })(window,document,'script','dataLayer','GTM-11235208587');</script>
-
-  <!-- كود Google Analytics 4 المعدل لموقع Netlify -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-WTD7T61YJW"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    
-    gtag('config', 'G-WTD7T61YJW', {
-      'debug_mode': true,
-      'cookie_domain': 'zozowhmoed.netlify.app',
-      'cookie_flags': 'SameSite=None; Secure',
-      'language': 'ar',
-      'page_title': document.title,
-      'page_path': window.location.pathname,
-      'transport_url': 'https://zozowhmoed.netlify.app',
-      'app_name': 'TimeCapsule',
-      'app_version': '1.0.0'
-    });
-  </script>
-
-  <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-  <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-  
-  <!-- خطوط عربية -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
-  
-  <title>TimeCapsule</title>
-
-  <style>
-    body {
-      font-family: 'Tajawal', sans-serif;
-      margin: 0;
-      padding: 0;
-      background-color: #f8f9fa;
-    }
-  </style>
-</head>
-<body>
-  <!-- Google Tag Manager (noscript) -->
-  <noscript>
-    <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-11235208587"
-    height="0" width="0" style="display:none;visibility:hidden"></iframe>
-  </noscript>
-  
-  <noscript>يجب تفعيل جافاسكريبت لتشغيل هذا التطبيق</noscript>
-  <div id="root"></div>
-
-  <!-- نظام تتبع الأحداث المخصص -->
-  <script>
-    window.trackEvent = function(eventName, eventParams) {
-      if (window.gtag) {
-        gtag('event', eventName, {
-          ...eventParams,
-          event_category: 'Custom Events',
-          event_label: 'User Interaction'
-        });
-      }
-      console.log('Event tracked:', eventName, eventParams);
-    };
-    
-    // تتبع الزيارة الأولية
-    if (window.location.hostname === 'zozowhmoed.netlify.app') {
-      gtag('event', 'first_visit', {
-        method: 'Organic'
-      });
-    }
-  </script>
-</body>
-</html>
->>>>>>> 6a09364011a35df5311e16111b184bda27896cf2
