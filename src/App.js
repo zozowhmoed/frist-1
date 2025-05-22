@@ -3,6 +3,10 @@ import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signO
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, getDoc, query, where, setDoc, onSnapshot, runTransaction, arrayUnion } from 'firebase/firestore';
 import './App.css';
+import AttendanceCalendar from './components/AttendanceCalendar';
+import Profile from './components/Profile';
+import HomePage from './components/HomePage';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -19,6 +23,45 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+
+const userService = {
+  createOrUpdateUser: async (user, additionalData = {}) => {
+    try {
+      await setDoc(doc(db, "users", user.uid), {
+        displayName: user.displayName || '',
+        photoURL: user.photoURL || '',
+        email: user.email || '',
+        lastLogin: new Date(),
+        ...additionalData
+      }, { merge: true });
+      return true;
+    } catch (error) {
+      console.error("Error in createOrUpdateUser:", error);
+      return false;
+    }
+  },
+
+  getUserData: async (userId) => {
+    try {
+      const docRef = doc(db, "users", userId);
+      const docSnap = await getDoc(docRef);
+      return docSnap.exists() ? docSnap.data() : null;
+    } catch (error) {
+      console.error("Error in getUserData:", error);
+      return null;
+    }
+  },
+
+  updateProfile: async (userId, profileData) => {
+    try {
+      await updateDoc(doc(db, "users", userId), profileData);
+      return true;
+    } catch (error) {
+      console.error("Error in updateProfile:", error);
+      return false;
+    }
+  }
+};
 
 function Timer({ user, onBack, groupId }) {
   const [isRunning, setIsRunning] = useState(false);
@@ -42,7 +85,6 @@ function Timer({ user, onBack, groupId }) {
   const [hoveredItem, setHoveredItem] = useState(null);
   const [hoveredAvatar, setHoveredAvatar] = useState(null);
 
-  // Register Service Worker
   useEffect(() => {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/service-worker.js')
@@ -55,7 +97,6 @@ function Timer({ user, onBack, groupId }) {
     }
   }, []);
 
-  // Background Sync Setup
   useEffect(() => {
     if ('serviceWorker' in navigator && 'SyncManager' in window) {
       navigator.serviceWorker.ready.then(registration => {
@@ -64,7 +105,6 @@ function Timer({ user, onBack, groupId }) {
     }
   }, []);
 
-  // Calculate user level with exponential growth
   const calculateLevel = (points) => {
     const base = 100;
     const growthFactor = 1.15;
@@ -91,7 +131,6 @@ function Timer({ user, onBack, groupId }) {
 
   const { currentLevel, progress, pointsToNextLevel } = calculateLevel(points);
 
-  // نظام الشعارات
   const getBadge = (level) => {
     const badges = {
       1: { name: "البذرة", icon: "🌱", color: "var(--secondary-color)", bgColor: "rgba(16, 185, 129, 0.1)" },
@@ -113,7 +152,6 @@ function Timer({ user, onBack, groupId }) {
 
   const currentBadge = getBadge(currentLevel);
 
-  // نظام المتجر مع إضافة الوصف
   const shopItems = [
     { 
       id: "boost", 
@@ -172,7 +210,6 @@ function Timer({ user, onBack, groupId }) {
           });
         });
         
-        // Update local state
         setPoints(prev => prev - item.price);
         setInventory(prev => [...prev, item.id]);
         applyItemEffect(item);
@@ -186,13 +223,12 @@ function Timer({ user, onBack, groupId }) {
     }
   };
 
-  // Apply item effects
   const applyItemEffect = (item) => {
     const effectMap = {
-      'double_points': 30 * 60 * 1000, // 30 minutes
-      'speed_boost': 60 * 60 * 1000,   // 60 minutes
-      'golden_crown': 24 * 60 * 60 * 1000, // 24 hours
-      'points_shield': 24 * 60 * 60 * 1000 // 24 hours
+      'double_points': 30 * 60 * 1000,
+      'speed_boost': 60 * 60 * 1000,
+      'golden_crown': 24 * 60 * 60 * 1000,
+      'points_shield': 24 * 60 * 60 * 1000
     };
     
     if (effectMap[item.effect]) {
@@ -207,18 +243,16 @@ function Timer({ user, onBack, groupId }) {
     }
   };
 
-  // Clean up expired effects
   useEffect(() => {
     const interval = setInterval(() => {
       setActiveEffects(prev => 
         prev.filter(effect => effect.expires > Date.now())
       );
-    }, 60000); // Check every minute
+    }, 60000);
 
     return () => clearInterval(interval);
   }, []);
 
-  // Toggle dark/light theme
   const toggleDarkMode = () => {
     const newMode = !darkMode;
     setDarkMode(newMode);
@@ -227,20 +261,17 @@ function Timer({ user, onBack, groupId }) {
     showNotification(newMode ? '🌙 تم تفعيل الوضع المظلم' : '☀️ تم تفعيل الوضع الفاتح');
   };
 
-  // Change language
   const changeLanguage = (lang) => {
     setLanguage(lang);
     localStorage.setItem('language', lang);
     showNotification(lang === 'ar' ? '🇸🇦 تم تغيير اللغة إلى العربية' : '🇬🇧 Language changed to English');
   };
 
-  // Show notification
   const showNotification = (message) => {
     setNotification(message);
     setTimeout(() => setNotification(null), 3000);
   };
 
-  // Format time as HH:MM:SS
   const formatTime = (seconds) => {
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
@@ -249,7 +280,6 @@ function Timer({ user, onBack, groupId }) {
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Add study session to history
   const addStudySession = (duration, pointsEarned) => {
     const newSession = {
       date: new Date(),
@@ -259,7 +289,6 @@ function Timer({ user, onBack, groupId }) {
     setStudySessions(prev => [newSession, ...prev].slice(0, 10));
   };
 
-  // Update points in Firestore
   const updatePoints = async (newPoints) => {
     try {
       const groupDoc = await getDoc(doc(db, "studyGroups", groupId));
@@ -273,7 +302,6 @@ function Timer({ user, onBack, groupId }) {
     }
   };
 
-  // Fetch group data
   const fetchGroupData = async () => {
     try {
       setLoadingMembers(true);
@@ -319,14 +347,12 @@ function Timer({ user, onBack, groupId }) {
     return () => unsubscribe();
   }, [groupId, user.uid]);
 
-  // Timer logic with auto-save
   useEffect(() => {
     let interval;
     if (isRunning) {
       interval = setInterval(() => {
         setTime(prev => {
           const newTime = prev + 1;
-          // Auto-save every 30 seconds with double points if active
           if (newTime % 30 === 0) {
             const pointsEarned = activeEffects.some(e => e.type === 'double_points') ? 2 : 1;
             setPoints(prevPoints => prevPoints + pointsEarned);
@@ -339,7 +365,6 @@ function Timer({ user, onBack, groupId }) {
     return () => clearInterval(interval);
   }, [isRunning, activeEffects]);
 
-  // Points and level up logic
   useEffect(() => {
     if (isRunning && time > 0 && time % 30 === 0 && time !== lastUpdateTime) {
       const newPoints = points + (activeEffects.some(e => e.type === 'double_points') ? 2 : 1);
@@ -347,7 +372,6 @@ function Timer({ user, onBack, groupId }) {
       updatePoints(newPoints);
       setLastUpdateTime(time);
       
-      // Check for level up
       const newLevelData = calculateLevel(newPoints);
       if (newLevelData.currentLevel > currentLevel) {
         showNotification(`🎉 تقدمت للمستوى ${newLevelData.currentLevel}!`);
@@ -355,11 +379,9 @@ function Timer({ user, onBack, groupId }) {
     }
   }, [time, isRunning]);
 
-  // Handle visibility changes for mobile
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        // Sync data when app becomes visible again
         fetchGroupData();
       }
     };
@@ -370,7 +392,6 @@ function Timer({ user, onBack, groupId }) {
     };
   }, []);
 
-  // Load theme and language preferences
   useEffect(() => {
     const savedMode = JSON.parse(localStorage.getItem('darkMode'));
     if (savedMode !== null) {
@@ -382,7 +403,6 @@ function Timer({ user, onBack, groupId }) {
     setLanguage(savedLang);
   }, []);
 
-  // Remove member from group
   const removeMember = async (memberId) => {
     if (window.confirm(`هل أنت متأكد من حذف هذا العضو من المجموعة؟`)) {
       try {
@@ -408,7 +428,6 @@ function Timer({ user, onBack, groupId }) {
     }
   };
 
-  // Ban/unban member
   const toggleBanMember = async (memberId) => {
     if (window.confirm(`هل أنت متأكد من ${bannedMembers.includes(memberId) ? 'إلغاء حظر' : 'حظر'} هذا العضو؟`)) {
       try {
@@ -449,19 +468,16 @@ function Timer({ user, onBack, groupId }) {
     }
   };
 
-  // Reset timer without saving
   const resetTimer = () => {
     setIsRunning(false);
     setTime(0);
     showNotification("⏱ تم إعادة ضبط المؤقت");
   };
 
-  // Toggle members sidebar
   const toggleMembersSidebar = () => {
     setShowMembers(prev => !prev);
   };
 
-  // Simulate online users
   useEffect(() => {
     const interval = setInterval(() => {
       const randomOnline = members
@@ -475,7 +491,6 @@ function Timer({ user, onBack, groupId }) {
 
   return (
     <div className="app-container">
-      {/* Top Navigation */}
       <div className="top-tabs">
         <button 
           className="menu-toggle" 
@@ -493,6 +508,17 @@ function Timer({ user, onBack, groupId }) {
             <span className="tab-icon">⏱️</span>
             <span className="tab-label">المؤقت</span>
           </button>
+          
+          {isCreator && (
+            <button 
+              className={`tab-button ${activeTab === 'attendance' ? 'active' : ''}`}
+              onClick={() => setActiveTab('attendance')}
+            >
+              <span className="tab-icon">📅</span>
+              <span className="tab-label">جدول الحضور</span>
+            </button>
+          )}
+          
           <button 
             className={`tab-button ${activeTab === 'profile' ? 'active' : ''}`}
             onClick={() => setActiveTab('profile')}
@@ -500,6 +526,7 @@ function Timer({ user, onBack, groupId }) {
             <span className="tab-icon">👤</span>
             <span className="tab-label">الملف الشخصي</span>
           </button>
+          
           <button 
             className={`tab-button ${activeTab === 'shop' ? 'active' : ''}`}
             onClick={() => setActiveTab('shop')}
@@ -510,7 +537,6 @@ function Timer({ user, onBack, groupId }) {
         </div>
       </div>
 
-      {/* Side Menu */}
       <div className={`side-menu ${sideMenuOpen ? 'open' : ''}`}>
         <button 
           className="close-menu" 
@@ -590,7 +616,6 @@ function Timer({ user, onBack, groupId }) {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="main-content">
         {activeTab === 'timer' && (
           <div className="timer-container">
@@ -651,7 +676,6 @@ function Timer({ user, onBack, groupId }) {
               </button>
             </div>
 
-            {/* عرض التأثيرات النشطة */}
             {activeEffects.length > 0 && (
               <div className="active-effects">
                 <h3>التأثيرات النشطة</h3>
@@ -773,9 +797,16 @@ function Timer({ user, onBack, groupId }) {
             </div>
           </div>
         )}
+        
+        {activeTab === 'attendance' && isCreator && (
+          <AttendanceCalendar 
+            groupId={groupId} 
+            userId={user.uid} 
+            isCreator={isCreator} 
+          />
+        )}
       </div>
 
-      {/* Members Sidebar */}
       <div className={`members-sidebar ${showMembers ? 'show' : ''}`}>
         <div className="sidebar-header">
           <h3>ترتيب المجموعة</h3>
@@ -881,7 +912,6 @@ function Timer({ user, onBack, groupId }) {
         )}
       </div>
 
-      {/* Notification */}
       {notification && (
         <div className="notification">
           {notification}
@@ -901,8 +931,9 @@ function App() {
   const [joinCode, setJoinCode] = useState('');
   const [darkMode, setDarkMode] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [activeTab, setActiveTab] = useState('groups');
+  const navigate = useNavigate();
 
-  // Register Service Worker
   useEffect(() => {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -917,13 +948,11 @@ function App() {
     }
   }, []);
 
-  // Show notification
   const showNotification = (message) => {
     setNotification(message);
     setTimeout(() => setNotification(null), 3000);
   };
 
-  // Toggle dark/light theme
   const toggleDarkMode = () => {
     const newMode = !darkMode;
     setDarkMode(newMode);
@@ -932,7 +961,6 @@ function App() {
     showNotification(newMode ? '🌙 تم تفعيل الوضع المظلم' : '☀️ تم تفعيل الوضع الفاتح');
   };
 
-  // Load theme preference
   useEffect(() => {
     const savedMode = JSON.parse(localStorage.getItem('darkMode'));
     if (savedMode !== null) {
@@ -941,16 +969,19 @@ function App() {
     }
   }, []);
 
-  // Auth state listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
-        await setDoc(doc(db, "users", currentUser.uid), {
-          displayName: currentUser.displayName,
-          photoURL: currentUser.photoURL,
-          email: currentUser.email,
-          lastLogin: new Date()
-        }, { merge: true });
+        const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+        const isNewUser = !userDoc.exists();
+        
+        await userService.createOrUpdateUser(currentUser, {
+          firstName: isNewUser ? '' : userDoc.data()?.firstName,
+          fatherName: isNewUser ? '' : userDoc.data()?.fatherName,
+          lastName: isNewUser ? '' : userDoc.data()?.lastName,
+          nickname: isNewUser ? currentUser.displayName || 'مستخدم جديد' : userDoc.data()?.nickname,
+          registrationDate: isNewUser ? new Date() : userDoc.data()?.registrationDate
+        });
         
         setUser(currentUser);
         await fetchUserGroups(currentUser.uid);
@@ -964,7 +995,6 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // Fetch user's groups
   const fetchUserGroups = async (userId) => {
     setLoadingGroups(true);
     try {
@@ -1009,7 +1039,6 @@ function App() {
     }
   };
 
-  // Google login
   const handleLogin = async () => {
     const provider = new GoogleAuthProvider();
     try {
@@ -1021,7 +1050,6 @@ function App() {
     }
   };
 
-  // Logout
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -1031,7 +1059,6 @@ function App() {
     }
   };
 
-  // Create new group
   const addStudyGroup = async () => {
     if (!groupName.trim()) {
       showNotification("⚠️ الرجاء إدخال اسم المجموعة");
@@ -1058,7 +1085,6 @@ function App() {
     }
   };
 
-  // Delete group
   const deleteGroup = async (groupId) => {
     if (window.confirm("⚠️ هل أنت متأكد من حذف هذه المجموعة؟ سيتم حذف جميع بياناتها نهائياً")) {
       try {
@@ -1082,7 +1108,6 @@ function App() {
     }
   };
 
-  // Join group by code
   const joinGroupByCode = async () => {
     if (!joinCode.trim()) {
       showNotification("⚠️ الرجاء إدخال كود المجموعة");
@@ -1137,12 +1162,10 @@ function App() {
     }
   };
 
-  // Handle join group
   const handleJoinGroup = (groupId) => {
     setSelectedGroup(groupId);
   };
 
-  // Back to groups list
   const handleBackToGroups = () => {
     setSelectedGroup(null);
   };
@@ -1169,164 +1192,183 @@ function App() {
         {darkMode ? '☀️' : '🌙'}
       </button>
       
-      <header className="App-header">
-        <div className="login-container">
-          {!user ? (
-            <div className="welcome-screen">
-              <h1>مجموعات الدراسة التعاونية</h1>
-              <p>انضم إلى مجتمع المذاكرة مع الأصدقاء وحقق أهدافك التعليمية</p>
-              <button className="login-button" onClick={handleLogin}>
-                <span>تسجيل الدخول باستخدام Google</span>
-              </button>
-            </div>
-          ) : (
-            <div className="user-welcome">
-              <div className="user-info">
-                <img src={user.photoURL} alt="صورة المستخدم" className="user-avatar" />
-                <div className="user-details">
-                  <h2>مرحباً {user.displayName}!</h2>
-                  <button className="logout-button" onClick={handleLogout}>
-                    تسجيل الخروج
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {user && (
-          <div className="group-management">
-            <div className="group-creation">
-              <h2>إنشاء مجموعة جديدة</h2>
-              <div className="input-group">
-                <input
-                  type="text"
-                  value={groupName}
-                  onChange={(e) => setGroupName(e.target.value)}
-                  placeholder="أدخل اسم المجموعة"
-                  onKeyPress={(e) => e.key === 'Enter' && addStudyGroup()}
-                />
-                <button className="create-button" onClick={addStudyGroup}>
-                  إنشاء
-                </button>
-              </div>
-            </div>
-            
-            <div className="join-group">
-              <h2>الانضمام إلى مجموعة</h2>
-              <button 
-                className="join-button"
-                onClick={() => setShowJoinModal(true)}
-              >
-                الانضمام بمجموعة موجودة
-              </button>
-            </div>
-          </div>
-        )}
-
-        {user && (
-          <div className="study-groups">
-            <h2>مجموعاتك الدراسية</h2>
-            
-            {loadingGroups ? (
-              <div className="loading-container">
-                <div className="spinner"></div>
-                <p>جاري تحميل المجموعات...</p>
-              </div>
-            ) : groups.length === 0 ? (
-              <div className="empty-state">
-                <img src="/empty-groups.svg" alt="لا توجد مجموعات" className="empty-image" />
-                <p>لا توجد مجموعات متاحة حالياً</p>
-                <button 
-                  className="create-button"
-                  onClick={() => document.querySelector('.group-creation input').focus()}
-                >
-                  إنشاء مجموعة جديدة
-                </button>
-              </div>
-            ) : (
-              <div className="groups-grid">
-                {groups.map((group) => (
-                  <div key={group.id} id={`group-${group.id}`} className="group-card">
-                    <div className="group-content">
-                      <h3 className="group-name">{group.name}</h3>
-                      <p className="group-meta">
-                        <span className="group-creator">المنشئ: {group.creatorName}</span>
-                        <span className="group-code">كود: {group.code}</span>
-                      </p>
-                      {group.isCreator && <span className="creator-badge">أنت المنشئ</span>}
-                    </div>
-                    
-                    <div className="group-actions">
-                      <button 
-                        onClick={() => handleJoinGroup(group.id)} 
-                        className="join-button"
-                      >
-                        دخول المجموعة
-                      </button>
-                      
-                      {group.isCreator && (
-                        <button 
-                          onClick={() => deleteGroup(group.id)} 
-                          className="delete-button"
-                        >
-                          حذف المجموعة
-                        </button>
-                      )}
+      <Routes>
+        <Route path="/" element={
+          <>
+            <header className="App-header">
+              <div className="login-container">
+                {!user ? (
+                  <div className="welcome-screen">
+                    <h1>مجموعات الدراسة التعاونية</h1>
+                    <p>انضم إلى مجتمع المذاكرة مع الأصدقاء وحقق أهدافك التعليمية</p>
+                    <button className="login-button" onClick={handleLogin}>
+                      <span>تسجيل الدخول باستخدام Google</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="user-welcome">
+                    <div className="user-info">
+                      <img src={user.photoURL} alt="صورة المستخدم" className="user-avatar" />
+                      <div className="user-details">
+                        <h2>مرحباً {user.displayName}!</h2>
+                        <div className="user-actions">
+                          <button 
+                            className={`profile-button ${activeTab === 'profile' ? 'active' : ''}`}
+                            onClick={() => {
+                              setActiveTab('profile');
+                              navigate('/profile');
+                            }}
+                          >
+                            الملف الشخصي
+                          </button>
+                          <button className="logout-button" onClick={handleLogout}>
+                            تسجيل الخروج
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                ))}
+                )}
               </div>
-            )}
-          </div>
-        )}
-        
-        {showJoinModal && (
-          <div className="modal-overlay" onClick={() => setShowJoinModal(false)}>
-            <div className="modal-content" onClick={e => e.stopPropagation()}>
-              <button className="close-button" onClick={() => setShowJoinModal(false)}>
-                &times;
-              </button>
-              
-              <h2>الانضمام إلى مجموعة</h2>
-              <p>أدخل كود المجموعة المكون من 6 أحرف</p>
-              
-              <input
-                type="text"
-                value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value)}
-                placeholder="أدخل كود المجموعة"
-                maxLength={6}
-                className="join-input"
-              />
-              
-              <div className="modal-actions">
-                <button onClick={joinGroupByCode} className="confirm-button">
-                  تأكيد الانضمام
-                </button>
-                <button 
-                  onClick={() => setShowJoinModal(false)} 
-                  className="cancel-button"
-                >
-                  إلغاء
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {notification && (
-          <div className="notification">
-            {notification}
-          </div>
-        )}
+              {user && activeTab === 'groups' && (
+                <>
+                  <div className="group-management">
+                    <div className="group-creation">
+                      <h2>إنشاء مجموعة جديدة</h2>
+                      <div className="input-group">
+                        <input
+                          type="text"
+                          value={groupName}
+                          onChange={(e) => setGroupName(e.target.value)}
+                          placeholder="أدخل اسم المجموعة"
+                          onKeyPress={(e) => e.key === 'Enter' && addStudyGroup()}
+                        />
+                        <button className="create-button" onClick={addStudyGroup}>
+                          إنشاء
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="join-group">
+                      <h2>الانضمام إلى مجموعة</h2>
+                      <button 
+                        className="join-button"
+                        onClick={() => setShowJoinModal(true)}
+                      >
+                        الانضمام بمجموعة موجودة
+                      </button>
+                    </div>
+                  </div>
 
-        <footer className="app-footer">
-          <p>تم تطويره بواسطة محمد أبو طبيخ © {new Date().getFullYear()}</p>
-        </footer>
-      </header>
+                  <div className="study-groups">
+                    <h2>مجموعاتك الدراسية</h2>
+                    
+                    {loadingGroups ? (
+                      <div className="loading-container">
+                        <div className="spinner"></div>
+                        <p>جاري تحميل المجموعات...</p>
+                      </div>
+                    ) : groups.length === 0 ? (
+                      <div className="empty-state">
+                        <img src="/empty-groups.svg" alt="لا توجد مجموعات" className="empty-image" />
+                        <p>لا توجد مجموعات متاحة حالياً</p>
+                        <button 
+                          className="create-button"
+                          onClick={() => document.querySelector('.group-creation input').focus()}
+                        >
+                          إنشاء مجموعة جديدة
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="groups-grid">
+                        {groups.map((group) => (
+                          <div key={group.id} id={`group-${group.id}`} className="group-card">
+                            <div className="group-content">
+                              <h3 className="group-name">{group.name}</h3>
+                              <p className="group-meta">
+                                <span className="group-creator">المنشئ: {group.creatorName}</span>
+                                <span className="group-code">كود: {group.code}</span>
+                              </p>
+                              {group.isCreator && <span className="creator-badge">أنت المنشئ</span>}
+                            </div>
+                            
+                            <div className="group-actions">
+                              <button 
+                                onClick={() => handleJoinGroup(group.id)} 
+                                className="join-button"
+                              >
+                                دخول المجموعة
+                              </button>
+                              
+                              {group.isCreator && (
+                                <button 
+                                  onClick={() => deleteGroup(group.id)} 
+                                  className="delete-button"
+                                >
+                                  حذف المجموعة
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+              
+              {showJoinModal && (
+                <div className="modal-overlay" onClick={() => setShowJoinModal(false)}>
+                  <div className="modal-content" onClick={e => e.stopPropagation()}>
+                    <button className="close-button" onClick={() => setShowJoinModal(false)}>
+                      &times;
+                    </button>
+                    
+                    <h2>الانضمام إلى مجموعة</h2>
+                    <p>أدخل كود المجموعة المكون من 6 أحرف</p>
+                    
+                    <input
+                      type="text"
+                      value={joinCode}
+                      onChange={(e) => setJoinCode(e.target.value)}
+                      placeholder="أدخل كود المجموعة"
+                      maxLength={6}
+                      className="join-input"
+                    />
+                    
+                    <div className="modal-actions">
+                      <button onClick={joinGroupByCode} className="confirm-button">
+                        تأكيد الانضمام
+                      </button>
+                      <button 
+                        onClick={() => setShowJoinModal(false)} 
+                        className="cancel-button"
+                      >
+                        إلغاء
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {notification && (
+                <div className="notification">
+                  {notification}
+                </div>
+              )}
+
+              <footer className="app-footer">
+                <p>تم تطويره بواسطة محمد أبو طبيخ © {new Date().getFullYear()}</p>
+              </footer>
+            </header>
+          </>
+        } />
+        <Route path="/profile" element={<Profile user={user} showNotification={showNotification} />} />
+      </Routes>
     </div>
   );
 }
 
 export default App;
+
