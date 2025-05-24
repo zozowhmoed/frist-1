@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import './AttendanceCalendar.css';
 
@@ -18,6 +18,11 @@ const AttendanceCalendar = ({ groupId, userId, isCreator }) => {
   const [memberDetails, setMemberDetails] = useState([]);
   const [loading, setLoading] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+  const [selectedDay, setSelectedDay] = useState(null);
+  const [attendanceStats, setAttendanceStats] = useState({
+    present: 0,
+    absent: 0
+  });
 
   useEffect(() => {
     const savedMode = JSON.parse(localStorage.getItem('darkMode'));
@@ -25,6 +30,18 @@ const AttendanceCalendar = ({ groupId, userId, isCreator }) => {
       setDarkMode(savedMode);
     }
   }, []);
+
+  const calculateStats = (data) => {
+    let present = 0;
+    let absent = 0;
+    
+    Object.values(data).forEach(status => {
+      if (status === 'present') present++;
+      else if (status === 'absent') absent++;
+    });
+    
+    return { present, absent };
+  };
 
   useEffect(() => {
     const fetchMembers = async () => {
@@ -42,7 +59,6 @@ const AttendanceCalendar = ({ groupId, userId, isCreator }) => {
               firstName: userData.firstName || 'غير معروف',
               fatherName: userData.fatherName || '',
               lastName: userData.lastName || '',
-              nickname: userData.nickname || userData.displayName || 'مستخدم',
               photoURL: userData.photoURL || null
             };
           })
@@ -53,7 +69,12 @@ const AttendanceCalendar = ({ groupId, userId, isCreator }) => {
         if (selectedMember) {
           const attendanceDoc = await getDoc(doc(db, "attendance", `${groupId}_${selectedMember}`));
           if (attendanceDoc.exists()) {
-            setAttendanceData(attendanceDoc.data().records || {});
+            const records = attendanceDoc.data().records || {};
+            setAttendanceData(records);
+            setAttendanceStats(calculateStats(records));
+          } else {
+            setAttendanceData({});
+            setAttendanceStats({ present: 0, absent: 0 });
           }
         }
       }
@@ -79,27 +100,45 @@ const AttendanceCalendar = ({ groupId, userId, isCreator }) => {
         setCurrentMonth(currentMonth + 1);
       }
     }
+    setSelectedDay(null);
   };
 
-  const updateAttendance = async (day, status) => {
-    if (!selectedMember) return;
+  const selectDay = (day) => {
+    setSelectedDay(day);
+  };
+
+  const updateAttendance = async (status) => {
+    if (!selectedDay || !selectedMember) return;
+    
+    const dateKey = `${currentYear}-${currentMonth}-${selectedDay}`;
+    const currentStatus = attendanceData[dateKey];
+    
+    if (currentStatus && status !== currentStatus) {
+      if (!window.confirm(`هل تريد تغيير حالة اليوم ${selectedDay} من ${currentStatus === 'present' ? 'حضور' : 'غياب'} إلى ${status === 'present' ? 'حضور' : 'غياب'}؟`)) {
+        return;
+      }
+    }
     
     const newData = {
       ...attendanceData,
-      [`${currentYear}-${currentMonth}-${day}`]: status
+      [dateKey]: status
     };
     
     setAttendanceData(newData);
+    setAttendanceStats(calculateStats(newData));
+    setSelectedDay(null);
   };
 
-  const deleteAttendance = async (day) => {
-    if (!selectedMember) return;
+  const deleteAttendance = async () => {
+    if (!selectedDay || !selectedMember) return;
     
     if (window.confirm('هل أنت متأكد من حذف حضور هذا اليوم؟')) {
+      const dateKey = `${currentYear}-${currentMonth}-${selectedDay}`;
       const newData = {...attendanceData};
-      delete newData[`${currentYear}-${currentMonth}-${day}`];
-      
+      delete newData[dateKey];
       setAttendanceData(newData);
+      setAttendanceStats(calculateStats(newData));
+      setSelectedDay(null);
     }
   };
 
@@ -118,11 +157,17 @@ const AttendanceCalendar = ({ groupId, userId, isCreator }) => {
   };
 
   const cancelChanges = async () => {
-    const attendanceDoc = await getDoc(doc(db, "attendance", `${groupId}_${selectedMember}`));
-    if (attendanceDoc.exists()) {
-      setAttendanceData(attendanceDoc.data().records || {});
-    } else {
-      setAttendanceData({});
+    if (window.confirm('هل أنت متأكد من إلغاء جميع التعديلات غير المحفوظة؟')) {
+      const attendanceDoc = await getDoc(doc(db, "attendance", `${groupId}_${selectedMember}`));
+      if (attendanceDoc.exists()) {
+        const records = attendanceDoc.data().records || {};
+        setAttendanceData(records);
+        setAttendanceStats(calculateStats(records));
+      } else {
+        setAttendanceData({});
+        setAttendanceStats({ present: 0, absent: 0 });
+      }
+      setSelectedDay(null);
     }
   };
 
@@ -138,13 +183,16 @@ const AttendanceCalendar = ({ groupId, userId, isCreator }) => {
         <div className="members-list">
           <h3>اختر عضو:</h3>
           <select 
-            onChange={(e) => setSelectedMember(e.target.value)}
+            onChange={(e) => {
+              setSelectedMember(e.target.value);
+              setSelectedDay(null);
+            }}
             value={selectedMember || ''}
           >
             <option value="">-- اختر عضو --</option>
             {memberDetails.map(member => (
               <option key={member.id} value={member.id}>
-                {member.nickname} - {member.firstName} {member.fatherName} {member.lastName}
+                {member.firstName} {member.fatherName} {member.lastName}
               </option>
             ))}
           </select>
@@ -162,12 +210,15 @@ const AttendanceCalendar = ({ groupId, userId, isCreator }) => {
               />
             )}
             <div className="member-names">
-              <h3>{getSelectedMember().nickname}</h3>
-              <p>
+              <h3>
                 {getSelectedMember().firstName} 
                 {getSelectedMember().fatherName && ` ${getSelectedMember().fatherName}`}
                 {getSelectedMember().lastName && ` ${getSelectedMember().lastName}`}
-              </p>
+              </h3>
+              <div className="attendance-stats">
+                <span className="stat-present">الحضور: {attendanceStats.present}</span>
+                <span className="stat-absent">الغياب: {attendanceStats.absent}</span>
+              </div>
             </div>
           </div>
 
@@ -186,39 +237,56 @@ const AttendanceCalendar = ({ groupId, userId, isCreator }) => {
               return (
                 <div 
                   key={day} 
-                  className={`calendar-day ${status}`}
+                  className={`calendar-day ${status} ${selectedDay === day ? 'selected' : ''}`}
+                  onClick={() => selectDay(day)}
                 >
                   <span className="day-number">{day}</span>
-                  <div className="day-actions">
-                    <button 
-                      onClick={() => updateAttendance(day, 'present')}
-                      className={`present-btn ${status === 'present' ? 'active' : ''}`}
-                    >
-                      حضور
-                    </button>
-                    <button 
-                      onClick={() => updateAttendance(day, 'absent')}
-                      className={`absent-btn ${status === 'absent' ? 'active' : ''}`}
-                    >
-                      غياب
-                    </button>
-                    {status !== 'unset' && (
-                      <button 
-                        onClick={() => deleteAttendance(day)}
-                        className="delete-btn"
-                      >
-                        حذف
-                      </button>
-                    )}
+                  <div className="day-status">
+                    {status === 'present' && 'حضور'}
+                    {status === 'absent' && 'غياب'}
                   </div>
                 </div>
               );
             })}
           </div>
 
+          {selectedDay && (
+            <div className="day-actions-panel">
+              <h4>إجراءات اليوم {selectedDay}:</h4>
+              <div className="action-buttons">
+                <button 
+                  onClick={() => updateAttendance('present')}
+                  className="present-btn"
+                >
+                  تحديد كحضور
+                </button>
+                <button 
+                  onClick={() => updateAttendance('absent')}
+                  className="absent-btn"
+                >
+                  تحديد كغياب
+                </button>
+                {attendanceData[`${currentYear}-${currentMonth}-${selectedDay}`] && (
+                  <button 
+                    onClick={deleteAttendance}
+                    className="delete-btn"
+                  >
+                    حذف الحضور
+                  </button>
+                )}
+                <button 
+                  onClick={() => setSelectedDay(null)}
+                  className="cancel-day-btn"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="calendar-actions">
             <button onClick={saveChanges} className="save-btn">حفظ التعديلات</button>
-            <button onClick={cancelChanges} className="cancel-btn">إلغاء</button>
+            <button onClick={cancelChanges} className="cancel-btn">إلغاء جميع التعديلات</button>
           </div>
         </div>
       )}

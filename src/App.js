@@ -1,14 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'firebase/auth';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, getDoc, query, where, setDoc, onSnapshot, runTransaction, arrayUnion } from 'firebase/firestore';
+import { 
+  getFirestore, 
+  collection, 
+  addDoc, 
+  getDocs, 
+  deleteDoc, 
+  doc, 
+  updateDoc, 
+  getDoc, 
+  query, 
+  where, 
+  setDoc, 
+  onSnapshot, 
+  runTransaction, 
+  arrayUnion,
+  writeBatch
+} from 'firebase/firestore';
 import './App.css';
 import AttendanceCalendar from './components/AttendanceCalendar';
 import Profile from './components/Profile';
 import HomePage from './components/HomePage';
 import { Routes, Route, useNavigate } from 'react-router-dom';
+import ExamsList from './components/exams/ExamsList';
+import ExamResults from './exams/ExamResults';
+import TakeExam from './exams/TakeExam';
+import CreateExam from './exams/CreateExam';
 
-// Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDoLr3Dnb5YbCnUtTexaz84YOH5h8Ukfoc",
   authDomain: "frist-b073a.firebaseapp.com",
@@ -19,10 +38,141 @@ const firebaseConfig = {
   measurementId: "G-GH3D6EMB6L"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+
+const examService = {
+  getExamsForGroup: async (groupId) => {
+    try {
+      const q = query(collection(db, "exams"), where("groupId", "==", groupId));
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error("Error fetching exams:", error);
+      return [];
+    }
+  },
+
+  listenForExams: (groupId, callback) => {
+    const q = query(collection(db, "exams"), where("groupId", "==", groupId));
+    return onSnapshot(q, (querySnapshot) => {
+      const exams = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      callback(exams);
+    });
+  },
+
+  createExam: async (examData) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error("يجب تسجيل الدخول أولاً");
+      
+      const examWithCreator = {
+        ...examData,
+        creatorId: user.uid,
+        createdAt: new Date(),
+        status: 'draft'
+      };
+      
+      const docRef = await addDoc(collection(db, "exams"), examWithCreator);
+      return docRef.id;
+    } catch (error) {
+      console.error("Error creating exam:", error);
+      throw error;
+    }
+  },
+
+  updateExam: async (examId, updates) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error("يجب تسجيل الدخول أولاً");
+      
+      const examRef = doc(db, "exams", examId);
+      const examSnap = await getDoc(examRef);
+      
+      if (!examSnap.exists()) {
+        throw new Error("الامتحان غير موجود");
+      }
+      
+      if (examSnap.data().creatorId !== user.uid) {
+        throw new Error("ليس لديك صلاحية تعديل هذا الامتحان");
+      }
+      
+      await updateDoc(examRef, updates);
+    } catch (error) {
+      console.error("Error updating exam:", error);
+      throw error;
+    }
+  },
+
+  deleteExam: async (examId) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error("يجب تسجيل الدخول أولاً");
+      
+      const examRef = doc(db, "exams", examId);
+      const examSnap = await getDoc(examRef);
+      
+      if (!examSnap.exists()) {
+        throw new Error("الامتحان غير موجود");
+      }
+      
+      if (examSnap.data().creatorId !== user.uid) {
+        throw new Error("ليس لديك صلاحية حذف هذا الامتحان");
+      }
+      
+      const batch = writeBatch(db);
+      
+      // حذف النتائج المرتبطة بالامتحان
+      const resultsQuery = query(
+        collection(db, "examResults"), 
+        where("examId", "==", examId)
+      );
+      const resultsSnapshot = await getDocs(resultsQuery);
+      
+      resultsSnapshot.docs.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      
+      batch.delete(examRef);
+      await batch.commit();
+    } catch (error) {
+      console.error("Error deleting exam:", error);
+      throw error;
+    }
+  },
+
+  getExamResults: async (examId) => {
+    try {
+      const q = query(collection(db, "examResults"), where("examId", "==", examId));
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error("Error fetching exam results:", error);
+      return [];
+    }
+  },
+
+  submitExamResults: async (results) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error("يجب تسجيل الدخول أولاً");
+      
+      const resultData = {
+        ...results,
+        userId: user.uid,
+        studentName: user.displayName || `User_${user.uid.slice(0, 5)}`,
+        submittedAt: new Date()
+      };
+      
+      const docRef = await addDoc(collection(db, "examResults"), resultData);
+      return docRef.id;
+    } catch (error) {
+      console.error("Error submitting exam results:", error);
+      throw error;
+    }
+  }
+};
 
 const userService = {
   createOrUpdateUser: async (user, additionalData = {}) => {
@@ -84,6 +234,19 @@ function Timer({ user, onBack, groupId }) {
   const [activeEffects, setActiveEffects] = useState([]);
   const [hoveredItem, setHoveredItem] = useState(null);
   const [hoveredAvatar, setHoveredAvatar] = useState(null);
+  const [exams, setExams] = useState([]);
+  const [selectedExam, setSelectedExam] = useState(null);
+  const [activeExamTab, setActiveExamTab] = useState('list');
+  const [examLoading, setExamLoading] = useState(false);
+
+  useEffect(() => {
+    if (groupId) {
+      const unsubscribe = examService.listenForExams(groupId, (examsData) => {
+        setExams(examsData);
+      });
+      return () => unsubscribe();
+    }
+  }, [groupId]);
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -489,6 +652,77 @@ function Timer({ user, onBack, groupId }) {
     return () => clearInterval(interval);
   }, [members]);
 
+
+  const handleActivateExam = async (exam) => {
+    setExamLoading(true);
+    try {
+      await examService.updateExam(exam.id, { 
+        status: 'active',
+        activatedAt: new Date()
+      });
+      showNotification('تم تفعيل الامتحان بنجاح');
+    } catch (error) {
+      console.error('Error activating exam:', error);
+      showNotification(`حدث خطأ أثناء تفعيل الامتحان: ${error.message}`);
+    } finally {
+      setExamLoading(false);
+    }
+  };
+
+  const handleDeleteExam = async (exam) => {
+    if (window.confirm(`هل أنت متأكد من حذف الامتحان "${exam.title}"؟`)) {
+      setExamLoading(true);
+      try {
+        await examService.deleteExam(exam.id);
+        showNotification('تم حذف الامتحان بنجاح');
+      } catch (error) {
+        console.error('Error deleting exam:', error);
+        showNotification(`حدث خطأ أثناء حذف الامتحان: ${error.message}`);
+      } finally {
+        setExamLoading(false);
+      }
+    }
+  };
+
+  const handleExamSubmitted = async (examId, answers) => {
+    setExamLoading(true);
+    try {
+      const examDoc = await getDoc(doc(db, "exams", examId));
+      if (!examDoc.exists() || examDoc.data().status !== 'active') {
+        throw new Error("الامتحان غير متاح حالياً");
+      }
+
+      const score = calculateScore(answers);
+      await examService.submitExamResults({
+        examId,
+        questions: selectedExam.questions,
+        answers,
+        score,
+        totalQuestions: selectedExam.questions.length,
+        correctAnswers: selectedExam.questions.filter((q, i) => q.correctAnswer === answers[i]).length
+      });
+      showNotification(`تم تسليم الامتحان بنجاح! نتيجتك: ${score} نقطة`);
+      setActiveExamTab('list');
+    } catch (error) {
+      console.error('Error submitting exam:', error);
+      showNotification(`حدث خطأ أثناء تسليم الامتحان: ${error.message}`);
+    } finally {
+      setExamLoading(false);
+    }
+  };
+
+
+  const calculateScore = (answers) => {
+    if (!selectedExam) return 0;
+    let score = 0;
+    selectedExam.questions.forEach((q, index) => {
+      if (answers[index] === q.correctAnswer) {
+        score += q.points || 1;
+      }
+    });
+    return score;
+  };
+
   return (
     <div className="app-container">
       <div className="top-tabs">
@@ -533,6 +767,17 @@ function Timer({ user, onBack, groupId }) {
           >
             <span className="tab-icon">🛒</span>
             <span className="tab-label">المتجر</span>
+          </button>
+
+          <button 
+            className={`tab-button ${activeTab === 'exams' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('exams');
+              setActiveExamTab('list');
+            }}
+          >
+            <span className="tab-icon">📝</span>
+            <span className="tab-label">الاختبارات</span>
           </button>
         </div>
       </div>
@@ -804,6 +1049,64 @@ function Timer({ user, onBack, groupId }) {
             userId={user.uid} 
             isCreator={isCreator} 
           />
+        )}
+
+        {activeTab === 'exams' && (
+          <div className="exams-container">
+            {examLoading && (
+              <div className="loading-overlay">
+                <div className="spinner"></div>
+                <p>جاري التحميل...</p>
+              </div>
+            )}
+            
+            {activeExamTab === 'list' && (
+              <ExamsList 
+                exams={exams} 
+                isCreator={isCreator}
+                currentUserId={user?.uid}
+                onActivateExam={handleActivateExam}
+                onDeleteExam={handleDeleteExam}
+                onStartCreate={() => setActiveExamTab('create')}
+                onViewResults={(exam) => {
+                  setSelectedExam(exam);
+                  setActiveExamTab('results');
+                }}
+                onTakeExam={(exam) => {
+                  setSelectedExam(exam);
+                  setActiveExamTab('take');
+                }}
+              />
+            )}
+            
+            {activeExamTab === 'create' && (
+              <CreateExam 
+                groupId={groupId} 
+                userId={user.uid} 
+                onExamCreated={() => {
+                  setActiveExamTab('list');
+                  showNotification('تم إنشاء الامتحان بنجاح');
+                }}
+                onCancel={() => setActiveExamTab('list')}
+              />
+            )}
+            
+            {activeExamTab === 'results' && selectedExam && (
+              <ExamResults 
+                examId={selectedExam.id} 
+                onBack={() => setActiveExamTab('list')}
+              />
+            )}
+            
+            {activeExamTab === 'take' && selectedExam && (
+              <TakeExam 
+                exam={selectedExam} 
+                userId={user.uid} 
+                onComplete={handleExamSubmitted}
+                onBack={() => setActiveExamTab('list')}
+              />
+            )}
+          </div>
         )}
       </div>
 
@@ -1371,4 +1674,3 @@ function App() {
 }
 
 export default App;
-

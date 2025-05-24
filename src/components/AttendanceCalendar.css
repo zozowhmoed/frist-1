@@ -1,3 +1,4 @@
+/* AttendanceCalendar.css */
 .attendance-container {
   max-width: 1000px;
   margin: 20px auto;
@@ -209,6 +210,11 @@
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
 }
 
+.calendar-day.selected {
+  border: 2px solid #4CAF50;
+  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
+
 .calendar-day.present {
   background-color: #48bb78;
   color: white;
@@ -231,6 +237,82 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.day-actions-panel {
+  margin: 20px 0;
+  padding: 20px;
+  border-radius: 12px;
+  background-color: rgba(66, 153, 225, 0.1);
+  text-align: center;
+}
+
+[data-theme="dark"] .day-actions-panel {
+  background-color: rgba(66, 153, 225, 0.2);
+}
+
+.day-actions-panel h4 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 1.1rem;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.action-buttons button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+}
+
+.present-btn {
+  background-color: #48bb78;
+  color: white;
+}
+
+.present-btn:hover {
+  background-color: #38a169;
+  transform: translateY(-2px);
+}
+
+.absent-btn {
+  background-color: #f56565;
+  color: white;
+}
+
+.absent-btn:hover {
+  background-color: #e53e3e;
+  transform: translateY(-2px);
+}
+
+.delete-btn {
+  background-color: #a0aec0;
+  color: white;
+}
+
+.delete-btn:hover {
+  background-color: #718096;
+  transform: translateY(-2px);
+}
+
+.cancel-day-btn {
+  background-color: #ed8936;
+  color: white;
+}
+
+.cancel-day-btn:hover {
+  background-color: #dd6b20;
+  transform: translateY(-2px);
 }
 
 .calendar-actions {
@@ -280,6 +362,15 @@
     height: 70px;
     padding: 10px;
   }
+  
+  .action-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .action-buttons button {
+    width: 100%;
+  }
 }
 
 @media (max-width: 576px) {
@@ -300,54 +391,40 @@
     flex-direction: column;
     text-align: center;
   }
+  
+  .attendance-container {
+    padding: 16px;
+  }
 }
 
 
 
 
-.day-actions {
+
+/* AttendanceCalendar.css */
+/* ... (الأنماط السابقة) */
+
+.attendance-stats {
   display: flex;
-  flex-direction: column;
-  gap: 5px;
-  margin-top: 5px;
+  gap: 15px;
+  margin-top: 8px;
+  font-size: 0.9rem;
 }
 
-.day-actions button {
-  padding: 4px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.8rem;
-  transition: all 0.2s;
-}
-
-.present-btn {
-  background-color: rgba(72, 187, 120, 0.2);
+.stat-present {
   color: #48bb78;
+  font-weight: 600;
 }
 
-.present-btn.active {
-  background-color: #48bb78;
-  color: white;
-}
-
-.absent-btn {
-  background-color: rgba(245, 101, 101, 0.2);
+.stat-absent {
   color: #f56565;
+  font-weight: 600;
 }
 
-.absent-btn.active {
-  background-color: #f56565;
-  color: white;
+[data-theme="dark"] .stat-present {
+  color: #68d391;
 }
 
-.delete-btn {
-  background-color: rgba(160, 174, 192, 0.2);
-  color: #a0aec0;
+[data-theme="dark"] .stat-absent {
+  color: #fc8181;
 }
-
-.delete-btn:hover {
-  background-color: #f56565;
-  color: white;
-}
-
